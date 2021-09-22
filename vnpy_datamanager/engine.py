@@ -41,6 +41,7 @@ class ManagerEngine(BaseEngine):
         low_head: str,
         close_head: str,
         volume_head: str,
+        turnover_head: str,
         open_interest_head: str,
         datetime_format: str
     ) -> Tuple:
@@ -62,6 +63,7 @@ class ManagerEngine(BaseEngine):
                 dt = datetime.fromisoformat(item[datetime_head])
             dt = tz.localize(dt)
 
+            turnover = item.get(turnover_head, 0)
             open_interest = item.get(open_interest_head, 0)
 
             bar = BarData(
@@ -74,6 +76,7 @@ class ManagerEngine(BaseEngine):
                 high_price=float(item[high_head]),
                 low_price=float(item[low_head]),
                 close_price=float(item[close_head]),
+                turnover=float(turnover),
                 open_interest=float(open_interest),
                 gateway_name="DB",
             )
@@ -112,6 +115,7 @@ class ManagerEngine(BaseEngine):
             "low",
             "close",
             "volume",
+            "turnover",
             "open_interest"
         ]
 
@@ -129,6 +133,7 @@ class ManagerEngine(BaseEngine):
                         "high": bar.high_price,
                         "low": bar.low_price,
                         "close": bar.close_price,
+                        "turnover": bar.turnover,
                         "volume": bar.volume,
                         "open_interest": bar.open_interest,
                     }
