@@ -22,9 +22,16 @@
 
 from pathlib import Path
 
+import importlib_metadata
 from vnpy.trader.app import BaseApp
 
 from .engine import APP_NAME, ManagerEngine
+
+
+try:
+    __version__ = importlib_metadata.version("vnpy_datamanager")
+except importlib_metadata.PackageNotFoundError:
+    __version__ = "dev"
 
 
 class DataManagerApp(BaseApp):
