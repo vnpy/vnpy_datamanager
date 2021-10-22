@@ -136,6 +136,9 @@ class ManagerWidget(QtWidgets.QWidget):
 
         overviews = self.engine.get_bar_overview()
 
+        # 基于合约代码进行排序
+        overviews.sort(key=lambda x: x.symbol)
+
         for overview in overviews:
             key = (overview.symbol, overview.exchange, overview.interval)
             item = self.tree_items.get(key, None)
