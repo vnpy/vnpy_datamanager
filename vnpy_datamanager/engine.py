@@ -234,9 +234,6 @@ class ManagerEngine(BaseEngine):
             end=datetime.now(DB_TZ)
         )
 
-        if not self.datafeed.inited:
-            self.datafeed.init()
-
         data = self.datafeed.query_tick_history(req)
 
         if data:
