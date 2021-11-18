@@ -4,12 +4,11 @@ from typing import List, Tuple
 
 from pytz import timezone
 
-from vnpy.trader.database import BarOverview, DB_TZ
 from vnpy.trader.engine import BaseEngine, MainEngine, EventEngine
 from vnpy.trader.constant import Interval, Exchange
 from vnpy.trader.object import BarData, HistoryRequest
-from vnpy.trader.rqdata import rqdata_client
-from vnpy.trader.database import database_manager
+from vnpy.trader.database import BaseDatabase, get_database, BarOverview, DB_TZ
+from vnpy.trader.datafeed import BaseDatafeed, get_datafeed
 
 
 APP_NAME = "DataManager"
@@ -26,6 +25,9 @@ class ManagerEngine(BaseEngine):
         """"""
         super().__init__(main_engine, event_engine, APP_NAME)
 
+        self.database: BaseDatabase = get_database()
+        self.datafeed: BaseDatafeed = get_datafeed()
+
     def import_data_from_csv(
         self,
         file_path: str,
@@ -39,6 +41,7 @@ class ManagerEngine(BaseEngine):
         low_head: str,
         close_head: str,
         volume_head: str,
+        turnover_head: str,
         open_interest_head: str,
         datetime_format: str
     ) -> Tuple:
@@ -60,6 +63,7 @@ class ManagerEngine(BaseEngine):
                 dt = datetime.fromisoformat(item[datetime_head])
             dt = tz.localize(dt)
 
+            turnover = item.get(turnover_head, 0)
             open_interest = item.get(open_interest_head, 0)
 
             bar = BarData(
@@ -72,6 +76,7 @@ class ManagerEngine(BaseEngine):
                 high_price=float(item[high_head]),
                 low_price=float(item[low_head]),
                 close_price=float(item[close_head]),
+                turnover=float(turnover),
                 open_interest=float(open_interest),
                 gateway_name="DB",
             )
@@ -86,7 +91,7 @@ class ManagerEngine(BaseEngine):
         end = bar.datetime
 
         # insert into database
-        database_manager.save_bar_data(bars)
+        self.database.save_bar_data(bars)
 
         return start, end, count
 
@@ -111,6 +116,7 @@ class ManagerEngine(BaseEngine):
             "low",
             "close",
             "volume",
+            "turnover",
             "open_interest"
         ]
 
@@ -128,6 +134,7 @@ class ManagerEngine(BaseEngine):
                         "high": bar.high_price,
                         "low": bar.low_price,
                         "close": bar.close_price,
+                        "turnover": bar.turnover,
                         "volume": bar.volume,
                         "open_interest": bar.open_interest,
                     }
@@ -139,7 +146,7 @@ class ManagerEngine(BaseEngine):
 
     def get_bar_overview(self) -> List[BarOverview]:
         """"""
-        return database_manager.get_bar_overview()
+        return self.database.get_bar_overview()
 
     def load_bar_data(
         self,
@@ -150,7 +157,7 @@ class ManagerEngine(BaseEngine):
         end: datetime
     ) -> List[BarData]:
         """"""
-        bars = database_manager.load_bar_data(
+        bars = self.database.load_bar_data(
             symbol,
             exchange,
             interval,
@@ -167,7 +174,7 @@ class ManagerEngine(BaseEngine):
         interval: Interval
     ) -> int:
         """"""
-        count = database_manager.delete_bar_data(
+        count = self.database.delete_bar_data(
             symbol,
             exchange,
             interval
@@ -183,7 +190,7 @@ class ManagerEngine(BaseEngine):
         start: datetime
     ) -> int:
         """
-        Query bar data from RQData.
+        Query bar data from datafeed.
         """
         req = HistoryRequest(
             symbol=symbol,
@@ -201,15 +208,12 @@ class ManagerEngine(BaseEngine):
             data = self.main_engine.query_history(
                 req, contract.gateway_name
             )
-        # Otherwise use RQData to query data
+        # Otherwise use datafeed to query data
         else:
-            if not rqdata_client.inited:
-                rqdata_client.init()
-
-            data = rqdata_client.query_history(req)
+            data = self.datafeed.query_bar_history(req)
 
         if data:
-            database_manager.save_bar_data(data)
+            self.database.save_bar_data(data)
             return(len(data))
 
         return 0
@@ -221,7 +225,7 @@ class ManagerEngine(BaseEngine):
         start: datetime
     ) -> int:
         """
-        Query tick data from RQData.
+        Query tick data from datafeed.
         """
         req = HistoryRequest(
             symbol=symbol,
@@ -230,13 +234,13 @@ class ManagerEngine(BaseEngine):
             end=datetime.now(DB_TZ)
         )
 
-        if not rqdata_client.inited:
-            rqdata_client.init()
+        if not self.datafeed.inited:
+            self.datafeed.init()
 
-        data = rqdata_client.query_tick_history(req)
+        data = self.datafeed.query_tick_history(req)
 
         if data:
-            database_manager.save_tick_data(data)
+            self.database.save_tick_data(data)
             return(len(data))
 
         return 0
