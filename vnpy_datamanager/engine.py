@@ -88,10 +88,11 @@ class ManagerEngine(BaseEngine):
             if not start:
                 start = bar.datetime
 
+        end = bar.datetime
+
         # insert into database
         self.database.save_bar_data(bars)
 
-        end = bar.datetime
         return start, end, count
 
     def output_data_to_csv(
@@ -232,9 +233,6 @@ class ManagerEngine(BaseEngine):
             start=start,
             end=datetime.now(DB_TZ)
         )
-
-        if not self.datafeed.inited:
-            self.datafeed.init()
 
         data = self.datafeed.query_tick_history(req)
 
