@@ -448,8 +448,8 @@ class DateRangeDialog(QtWidgets.QDialog):
 
     def get_date_range(self) -> Tuple[datetime, datetime]:
         """"""
-        start = self.start_edit.dateTime().toPyDateTime()
-        end = self.end_edit.dateTime().toPyDateTime() + timedelta(days=1)
+        start = self.start_edit.dateTime().toPython()
+        end = self.end_edit.dateTime().toPython() + timedelta(days=1)
         return start, end
 
 
