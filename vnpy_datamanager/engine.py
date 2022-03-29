@@ -1,17 +1,17 @@
 import csv
 from datetime import datetime
-from typing import List, Tuple
+from typing import List
 
 from pytz import timezone
 
 from vnpy.trader.engine import BaseEngine, MainEngine, EventEngine
 from vnpy.trader.constant import Interval, Exchange
-from vnpy.trader.object import BarData, HistoryRequest
+from vnpy.trader.object import BarData, TickData, ContractData, HistoryRequest
 from vnpy.trader.database import BaseDatabase, get_database, BarOverview, DB_TZ
 from vnpy.trader.datafeed import BaseDatafeed, get_datafeed
 
 
-APP_NAME = "DataManager"
+APP_NAME: str = "DataManager"
 
 
 class ManagerEngine(BaseEngine):
@@ -21,7 +21,7 @@ class ManagerEngine(BaseEngine):
         self,
         main_engine: MainEngine,
         event_engine: EventEngine,
-    ):
+    ) -> None:
         """"""
         super().__init__(main_engine, event_engine, APP_NAME)
 
@@ -44,29 +44,29 @@ class ManagerEngine(BaseEngine):
         turnover_head: str,
         open_interest_head: str,
         datetime_format: str
-    ) -> Tuple:
+    ) -> tuple:
         """"""
         with open(file_path, "rt") as f:
-            buf = [line.replace("\0", "") for line in f]
+            buf: list = [line.replace("\0", "") for line in f]
 
-        reader = csv.DictReader(buf, delimiter=",")
+        reader: csv.DictReader = csv.DictReader(buf, delimiter=",")
 
-        bars = []
-        start = None
-        count = 0
+        bars: List[BarData] = []
+        start: datetime = None
+        count: int = 0
         tz = timezone(tz_name)
 
         for item in reader:
             if datetime_format:
-                dt = datetime.strptime(item[datetime_head], datetime_format)
+                dt: datetime = datetime.strptime(item[datetime_head], datetime_format)
             else:
-                dt = datetime.fromisoformat(item[datetime_head])
-            dt = tz.localize(dt)
+                dt: datetime = datetime.fromisoformat(item[datetime_head])
+            dt: datetime = tz.localize(dt)
 
             turnover = item.get(turnover_head, 0)
             open_interest = item.get(open_interest_head, 0)
 
-            bar = BarData(
+            bar: BarData = BarData(
                 symbol=symbol,
                 exchange=exchange,
                 datetime=dt,
@@ -88,7 +88,7 @@ class ManagerEngine(BaseEngine):
             if not start:
                 start = bar.datetime
 
-        end = bar.datetime
+        end: datetime = bar.datetime
 
         # insert into database
         self.database.save_bar_data(bars)
@@ -105,9 +105,9 @@ class ManagerEngine(BaseEngine):
         end: datetime
     ) -> bool:
         """"""
-        bars = self.load_bar_data(symbol, exchange, interval, start, end)
+        bars: List[BarData] = self.load_bar_data(symbol, exchange, interval, start, end)
 
-        fieldnames = [
+        fieldnames: list = [
             "symbol",
             "exchange",
             "datetime",
@@ -122,11 +122,11 @@ class ManagerEngine(BaseEngine):
 
         try:
             with open(file_path, "w") as f:
-                writer = csv.DictWriter(f, fieldnames=fieldnames, lineterminator="\n")
+                writer: csv.DictWriter = csv.DictWriter(f, fieldnames=fieldnames, lineterminator="\n")
                 writer.writeheader()
 
                 for bar in bars:
-                    d = {
+                    d: dict = {
                         "symbol": bar.symbol,
                         "exchange": bar.exchange.value,
                         "datetime": bar.datetime.strftime("%Y-%m-%d %H:%M:%S"),
@@ -157,7 +157,7 @@ class ManagerEngine(BaseEngine):
         end: datetime
     ) -> List[BarData]:
         """"""
-        bars = self.database.load_bar_data(
+        bars: List[BarData] = self.database.load_bar_data(
             symbol,
             exchange,
             interval,
@@ -174,7 +174,7 @@ class ManagerEngine(BaseEngine):
         interval: Interval
     ) -> int:
         """"""
-        count = self.database.delete_bar_data(
+        count: int = self.database.delete_bar_data(
             symbol,
             exchange,
             interval
@@ -192,7 +192,7 @@ class ManagerEngine(BaseEngine):
         """
         Query bar data from datafeed.
         """
-        req = HistoryRequest(
+        req: HistoryRequest = HistoryRequest(
             symbol=symbol,
             exchange=exchange,
             interval=Interval(interval),
@@ -200,17 +200,17 @@ class ManagerEngine(BaseEngine):
             end=datetime.now(DB_TZ)
         )
 
-        vt_symbol = f"{symbol}.{exchange.value}"
-        contract = self.main_engine.get_contract(vt_symbol)
+        vt_symbol: str = f"{symbol}.{exchange.value}"
+        contract: ContractData = self.main_engine.get_contract(vt_symbol)
 
         # If history data provided in gateway, then query
         if contract and contract.history_data:
-            data = self.main_engine.query_history(
+            data: List[BarData] = self.main_engine.query_history(
                 req, contract.gateway_name
             )
         # Otherwise use datafeed to query data
         else:
-            data = self.datafeed.query_bar_history(req)
+            data: List[BarData] = self.datafeed.query_bar_history(req)
 
         if data:
             self.database.save_bar_data(data)
@@ -227,14 +227,14 @@ class ManagerEngine(BaseEngine):
         """
         Query tick data from datafeed.
         """
-        req = HistoryRequest(
+        req: HistoryRequest = HistoryRequest(
             symbol=symbol,
             exchange=exchange,
             start=start,
             end=datetime.now(DB_TZ)
         )
 
-        data = self.datafeed.query_tick_history(req)
+        data: List[TickData] = self.datafeed.query_tick_history(req)
 
         if data:
             self.database.save_tick_data(data)
