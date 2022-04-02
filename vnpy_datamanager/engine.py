@@ -6,8 +6,8 @@ from pytz import timezone
 
 from vnpy.trader.engine import BaseEngine, MainEngine, EventEngine
 from vnpy.trader.constant import Interval, Exchange
-from vnpy.trader.object import BarData, HistoryRequest
-from vnpy.trader.database import BaseDatabase, get_database, BarOverview, DB_TZ
+from vnpy.trader.object import BarData, TickData, HistoryRequest
+from vnpy.trader.database import BaseDatabase, get_database, BarOverview, TickOverview, DB_TZ
 from vnpy.trader.datafeed import BaseDatafeed, get_datafeed
 
 
@@ -148,6 +148,10 @@ class ManagerEngine(BaseEngine):
         """"""
         return self.database.get_bar_overview()
 
+    def get_tick_overview(self) -> List[TickOverview]:
+        """"""
+        return self.database.get_tick_overview()
+
     def load_bar_data(
         self,
         symbol: str,
@@ -178,6 +182,36 @@ class ManagerEngine(BaseEngine):
             symbol,
             exchange,
             interval
+        )
+
+        return count
+
+    def load_tick_data(
+        self,
+        symbol: str,
+        exchange: Exchange,
+        start: datetime,
+        end: datetime
+    ) -> List[TickData]:
+        """"""
+        ticks = self.database.load_tick_data(
+            symbol,
+            exchange,
+            start,
+            end
+        )
+
+        return ticks
+
+    def delete_tick_data(
+        self,
+        symbol: str,
+        exchange: Exchange
+    ) -> int:
+        """"""
+        count = self.database.delete_tick_data(
+            symbol,
+            exchange
         )
 
         return count
