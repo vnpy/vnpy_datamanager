@@ -105,40 +105,123 @@ class ManagerEngine(BaseEngine):
         end: datetime
     ) -> bool:
         """"""
-        bars = self.load_bar_data(symbol, exchange, interval, start, end)
-
-        fieldnames = [
-            "symbol",
-            "exchange",
-            "datetime",
-            "open",
-            "high",
-            "low",
-            "close",
-            "volume",
-            "turnover",
-            "open_interest"
-        ]
+        if interval == Interval.TICK:
+            ticks: List[TickData] = self.load_tick_data(symbol, exchange, start, end)
+            
+            fieldnames: list = [
+                "symbol",
+                "exchange",
+                "datetime",
+                "open",
+                "high",
+                "low",
+                "pre_close",
+                "volume",
+                "turnover",
+                "open_interest",
+                "last_price",
+                "last_volume",
+                "limit_up",
+                "limit_down",
+                "bid_price_1",
+                "bid_price_2",
+                "bid_price_3",
+                "bid_price_4",
+                "bid_price_5",
+                "ask_price_1",
+                "ask_price_2",
+                "ask_price_3",
+                "ask_price_4",
+                "ask_price_5",
+                "bid_volume_1",
+                "bid_volume_2",
+                "bid_volume_3",
+                "bid_volume_4",
+                "bid_volume_5",
+                "ask_volume_1",
+                "ask_volume_2",
+                "ask_volume_3",
+                "ask_volume_4",
+                "ask_volume_5",
+                "localtime"
+            ]
+        else:
+            bars: List[BarData] = self.load_bar_data(symbol, exchange, interval, start, end)
+    
+            fieldnames: list = [
+                "symbol",
+                "exchange",
+                "datetime",
+                "open",
+                "high",
+                "low",
+                "close",
+                "volume",
+                "turnover",
+                "open_interest"
+            ]
 
         try:
             with open(file_path, "w") as f:
                 writer = csv.DictWriter(f, fieldnames=fieldnames, lineterminator="\n")
                 writer.writeheader()
 
-                for bar in bars:
-                    d = {
-                        "symbol": bar.symbol,
-                        "exchange": bar.exchange.value,
-                        "datetime": bar.datetime.strftime("%Y-%m-%d %H:%M:%S"),
-                        "open": bar.open_price,
-                        "high": bar.high_price,
-                        "low": bar.low_price,
-                        "close": bar.close_price,
-                        "turnover": bar.turnover,
-                        "volume": bar.volume,
-                        "open_interest": bar.open_interest,
-                    }
-                    writer.writerow(d)
+                if interval == Interval.TICK:
+                    for tick in ticks:
+                        d: dict = {
+                            "symbol": tick.symbol,
+                            "exchange": tick.exchange.value,
+                            "datetime": tick.datetime.strftime("%Y-%m-%d %H:%M:%S.%f"),
+                            "open": tick.open_price,
+                            "high": tick.high_price,
+                            "low": tick.low_price,
+                            "pre_close": tick.pre_close,
+                            "turnover": tick.turnover,
+                            "volume": tick.volume,
+                            "open_interest": tick.open_interest,
+                            "last_price": tick.last_price,
+                            "last_volume": tick.last_volume,
+                            "limit_up": tick.limit_up,
+                            "limit_down": tick.limit_down,
+                            "bid_price_1": tick.bid_price_1,
+                            "bid_price_2": tick.bid_price_2,
+                            "bid_price_3": tick.bid_price_3,
+                            "bid_price_4": tick.bid_price_4,
+                            "bid_price_5": tick.bid_price_5,
+                            "ask_price_1": tick.ask_price_1,
+                            "ask_price_2": tick.ask_price_2,
+                            "ask_price_3": tick.ask_price_3,
+                            "ask_price_4": tick.ask_price_4,
+                            "ask_price_5": tick.ask_price_5,
+                            "bid_volume_1": tick.bid_volume_1,
+                            "bid_volume_2": tick.bid_volume_2,
+                            "bid_volume_3": tick.bid_volume_3,
+                            "bid_volume_4": tick.bid_volume_4,
+                            "bid_volume_5": tick.bid_volume_5,
+                            "ask_volume_1": tick.ask_volume_1,
+                            "ask_volume_2": tick.ask_volume_2,
+                            "ask_volume_3": tick.ask_volume_3,
+                            "ask_volume_4": tick.ask_volume_4,
+                            "ask_volume_5": tick.ask_volume_5,
+                        }
+                        if tick.localtime:
+                            d["localtime"] = tick.localtime.strftime("%Y-%m-%d %H:%M:%S.%f")
+                        writer.writerow(d)
+                else:
+                    for bar in bars:
+                        d: dict = {
+                            "symbol": bar.symbol,
+                            "exchange": bar.exchange.value,
+                            "datetime": bar.datetime.strftime("%Y-%m-%d %H:%M:%S"),
+                            "open": bar.open_price,
+                            "high": bar.high_price,
+                            "low": bar.low_price,
+                            "close": bar.close_price,
+                            "turnover": bar.turnover,
+                            "volume": bar.volume,
+                            "open_interest": bar.open_interest,
+                        }
+                        writer.writerow(d)
 
             return True
         except PermissionError:
