@@ -95,6 +95,10 @@ class ManagerWidget(QtWidgets.QWidget):
         self.daily_child.setText(0, "日线")
         self.tree.addTopLevelItem(self.daily_child)
 
+        self.tick_child = QtWidgets.QTreeWidgetItem()
+        self.tick_child.setText(0, "Tick")
+        self.tree.addTopLevelItem(self.tick_child)
+
     def init_table(self) -> None:
         """"""
         labels = [
@@ -125,8 +129,10 @@ class ManagerWidget(QtWidgets.QWidget):
                 self.minute_child.removeChild(item)
             elif interval == Interval.HOUR.value:
                 self.hour_child.removeChild(item)
-            else:
+            elif interval == Interval.DAILY.value:
                 self.daily_child.removeChild(item)
+            else:
+                self.tick_child.removeChild(item)
 
         self.tree_items.clear()
 
@@ -134,7 +140,7 @@ class ManagerWidget(QtWidgets.QWidget):
         """"""
         self.clear_tree()
 
-        overviews = self.engine.get_bar_overview()
+        overviews = self.engine.get_bar_overview() + self.engine.get_tick_overview()
 
         # 基于合约代码进行排序
         overviews.sort(key=lambda x: x.symbol)
@@ -155,8 +161,10 @@ class ManagerWidget(QtWidgets.QWidget):
                     self.minute_child.addChild(item)
                 elif overview.interval == Interval.HOUR:
                     self.hour_child.addChild(item)
-                else:
+                elif overview.interval == Interval.DAILY:
                     self.daily_child.addChild(item)
+                else:
+                    self.tick_child.addChild(item)
 
                 output_button = QtWidgets.QPushButton("导出")
                 output_func = partial(
@@ -200,6 +208,7 @@ class ManagerWidget(QtWidgets.QWidget):
         self.minute_child.setExpanded(True)
         self.hour_child.setExpanded(True)
         self.daily_child.setExpanded(True)
+        self.tick_child.setExpanded(True)
 
     def import_data(self) -> None:
         """"""
@@ -309,26 +318,48 @@ class ManagerWidget(QtWidgets.QWidget):
             return
         start, end = dialog.get_date_range()
 
-        bars = self.engine.load_bar_data(
-            symbol,
-            exchange,
-            interval,
-            start,
-            end
-        )
+        if interval == interval.TICK:
+            ticks = self.engine.load_tick_data(
+                symbol,
+                exchange,
+                start,
+                end
+            )
 
-        self.table.setRowCount(0)
-        self.table.setRowCount(len(bars))
+            self.table.setRowCount(0)
+            self.table.setRowCount(len(ticks))
+            
+            for row, tick in enumerate(ticks):
+                self.table.setItem(row, 0, DataCell(tick.datetime.strftime("%Y-%m-%d %H:%M:%S.%f")))
+                self.table.setItem(row, 1, DataCell(str(tick.open_price)))
+                self.table.setItem(row, 2, DataCell(str(tick.high_price)))
+                self.table.setItem(row, 3, DataCell(str(tick.low_price)))
+                self.table.setItem(row, 4, DataCell(str(tick.pre_close)))
+                self.table.setItem(row, 5, DataCell(str(tick.volume)))
+                self.table.setItem(row, 6, DataCell(str(tick.turnover)))
+                self.table.setItem(row, 7, DataCell(str(tick.open_interest)))
 
-        for row, bar in enumerate(bars):
-            self.table.setItem(row, 0, DataCell(bar.datetime.strftime("%Y-%m-%d %H:%M:%S")))
-            self.table.setItem(row, 1, DataCell(str(bar.open_price)))
-            self.table.setItem(row, 2, DataCell(str(bar.high_price)))
-            self.table.setItem(row, 3, DataCell(str(bar.low_price)))
-            self.table.setItem(row, 4, DataCell(str(bar.close_price)))
-            self.table.setItem(row, 5, DataCell(str(bar.volume)))
-            self.table.setItem(row, 6, DataCell(str(bar.turnover)))
-            self.table.setItem(row, 7, DataCell(str(bar.open_interest)))
+        else:
+            bars = self.engine.load_bar_data(
+                symbol,
+                exchange,
+                interval,
+                start,
+                end
+            )
+
+            self.table.setRowCount(0)
+            self.table.setRowCount(len(bars))
+
+            for row, bar in enumerate(bars):
+                self.table.setItem(row, 0, DataCell(bar.datetime.strftime("%Y-%m-%d %H:%M:%S")))
+                self.table.setItem(row, 1, DataCell(str(bar.open_price)))
+                self.table.setItem(row, 2, DataCell(str(bar.high_price)))
+                self.table.setItem(row, 3, DataCell(str(bar.low_price)))
+                self.table.setItem(row, 4, DataCell(str(bar.close_price)))
+                self.table.setItem(row, 5, DataCell(str(bar.volume)))
+                self.table.setItem(row, 6, DataCell(str(bar.turnover)))
+                self.table.setItem(row, 7, DataCell(str(bar.open_interest)))
 
     def delete_data(
         self,
@@ -348,11 +379,14 @@ class ManagerWidget(QtWidgets.QWidget):
         if n == QtWidgets.QMessageBox.Cancel:
             return
 
-        count = self.engine.delete_bar_data(
-            symbol,
-            exchange,
-            interval
-        )
+        if interval == Interval.TICK:
+            count = self.engine.delete_tick_data(symbol,exchange)
+        else:
+            count = self.engine.delete_bar_data(
+                symbol,
+                exchange,
+                interval
+            )
 
         QtWidgets.QMessageBox.information(
             self,
@@ -363,7 +397,7 @@ class ManagerWidget(QtWidgets.QWidget):
 
     def update_data(self) -> None:
         """"""
-        overviews = self.engine.get_bar_overview()
+        overviews = self.engine.get_bar_overview() + self.engine.get_tick_overview()
         total = len(overviews)
         count = 0
 
@@ -380,13 +414,19 @@ class ManagerWidget(QtWidgets.QWidget):
         for overview in overviews:
             if dialog.wasCanceled():
                 break
-
-            self.engine.download_bar_data(
-                overview.symbol,
-                overview.exchange,
-                overview.interval,
-                overview.end
-            )
+            if overview.interval == Interval.TICK:
+                self.engine.download_tick_data(
+                    overview.symbol,
+                    overview.exchange,
+                    overview.end
+                )
+            else:
+                self.engine.download_bar_data(
+                    overview.symbol,
+                    overview.exchange,
+                    overview.interval,
+                    overview.end
+                )
             count += 1
             progress = int(round(count / total * 100, 0))
             dialog.setValue(progress)
