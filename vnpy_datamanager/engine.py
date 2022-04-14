@@ -233,7 +233,10 @@ class ManagerEngine(BaseEngine):
 
     def get_tick_overview(self) -> List[TickOverview]:
         """"""
-        return self.database.get_tick_overview()
+        if hasattr(self.database, 'get_tick_overview'):
+            return self.database.get_tick_overview()
+        else:
+            return []
 
     def load_bar_data(
         self,
