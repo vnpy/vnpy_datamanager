@@ -37,10 +37,10 @@ except importlib_metadata.PackageNotFoundError:
 class DataManagerApp(BaseApp):
     """"""
 
-    app_name = APP_NAME
-    app_module = __module__
-    app_path = Path(__file__).parent
-    display_name = "数据管理"
-    engine_class = ManagerEngine
-    widget_name = "ManagerWidget"
-    icon_name = str(app_path.joinpath("ui", "manager.ico"))
+    app_name: str = APP_NAME
+    app_module: str = __module__
+    app_path: Path = Path(__file__).parent
+    display_name: str = "数据管理"
+    engine_class: ManagerEngine = ManagerEngine
+    widget_name: str = "ManagerWidget"
+    icon_name: str = str(app_path.joinpath("ui", "manager.ico"))
