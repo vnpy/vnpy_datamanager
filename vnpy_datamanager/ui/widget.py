@@ -1,4 +1,4 @@
-from typing import List, Tuple, Dict
+from typing import List, Tuple, Dict, Optional
 from functools import partial
 from datetime import datetime, timedelta
 
@@ -142,10 +142,10 @@ class ManagerWidget(QtWidgets.QWidget):
 
         for overview in overviews:
             key: tuple = (overview.symbol, overview.exchange, overview.interval)
-            item: QtWidgets.QTreeWidgetItem = self.tree_items.get(key, None)
+            item: Optional[QtWidgets.QTreeWidgetItem] = self.tree_items.get(key, None)
 
             if not item:
-                item: QtWidgets.QTreeWidgetItem = QtWidgets.QTreeWidgetItem()
+                item = QtWidgets.QTreeWidgetItem()
                 self.tree_items[key] = item
 
                 item.setText(1, f"{overview.symbol}.{overview.exchange.value}")

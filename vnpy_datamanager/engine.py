@@ -1,6 +1,6 @@
 import csv
 from datetime import datetime
-from typing import List
+from typing import List, Optional
 
 from pytz import timezone
 
@@ -11,7 +11,7 @@ from vnpy.trader.database import BaseDatabase, get_database, BarOverview, DB_TZ
 from vnpy.trader.datafeed import BaseDatafeed, get_datafeed
 
 
-APP_NAME: str = "DataManager"
+APP_NAME = "DataManager"
 
 
 class ManagerEngine(BaseEngine):
@@ -201,7 +201,7 @@ class ManagerEngine(BaseEngine):
         )
 
         vt_symbol: str = f"{symbol}.{exchange.value}"
-        contract: ContractData = self.main_engine.get_contract(vt_symbol)
+        contract: Optional[ContractData] = self.main_engine.get_contract(vt_symbol)
 
         # If history data provided in gateway, then query
         if contract and contract.history_data:
