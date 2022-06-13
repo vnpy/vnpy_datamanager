@@ -1,4 +1,3 @@
-import sys
 import csv
 from datetime import datetime
 from typing import List, Tuple
@@ -8,11 +7,7 @@ from vnpy.trader.constant import Interval, Exchange
 from vnpy.trader.object import BarData, HistoryRequest
 from vnpy.trader.database import BaseDatabase, get_database, BarOverview, DB_TZ
 from vnpy.trader.datafeed import BaseDatafeed, get_datafeed
-
-if sys.version_info >= (3, 9):
-    from zoneinfo import ZoneInfo
-else:
-    from backports.zoneinfo import ZoneInfo
+from vnpy.trader.utility import ZoneInfo
 
 APP_NAME = "DataManager"
 

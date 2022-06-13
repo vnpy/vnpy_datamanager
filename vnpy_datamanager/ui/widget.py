@@ -1,4 +1,3 @@
-import sys
 from typing import Tuple, Dict
 from functools import partial
 from datetime import datetime, timedelta
@@ -7,13 +6,9 @@ from vnpy.trader.ui import QtWidgets, QtCore
 from vnpy.trader.engine import MainEngine, EventEngine
 from vnpy.trader.constant import Interval, Exchange
 from vnpy.trader.database import DB_TZ
+from vnpy.trader.utility import available_timezones
 
 from ..engine import APP_NAME, ManagerEngine
-
-if sys.version_info >= (3, 9):
-    from zoneinfo import available_timezones
-else:
-    from backports.zoneinfo import available_timezones
 
 
 class ManagerWidget(QtWidgets.QWidget):
