@@ -2,13 +2,12 @@ from typing import List, Tuple, Dict, Optional
 from functools import partial
 from datetime import datetime, timedelta
 
-from pytz import all_timezones
-
 from vnpy.trader.ui import QtWidgets, QtCore
 from vnpy.trader.engine import MainEngine, EventEngine
 from vnpy.trader.constant import Interval, Exchange
 from vnpy.trader.object import BarData
 from vnpy.trader.database import DB_TZ
+from vnpy.trader.utility import available_timezones
 
 from ..engine import APP_NAME, ManagerEngine, BarOverview
 
@@ -487,7 +486,7 @@ class ImportDialog(QtWidgets.QDialog):
                 self.interval_combo.addItem(str(i.name), i)
 
         self.tz_combo: QtWidgets.QComboBox = QtWidgets.QComboBox()
-        self.tz_combo.addItems(all_timezones)
+        self.tz_combo.addItems(available_timezones())
         self.tz_combo.setCurrentIndex(self.tz_combo.findText("Asia/Shanghai"))
 
         self.datetime_edit: QtWidgets.QLineEdit = QtWidgets.QLineEdit("datetime")
@@ -602,7 +601,7 @@ class DownloadDialog(QtWidgets.QDialog):
 
         start_date = self.start_date_edit.date()
         start: datetime = datetime(start_date.year(), start_date.month(), start_date.day())
-        start: datetime = DB_TZ.localize(start)
+        start: datetime = start.replace(tzinfo=DB_TZ)
 
         if interval == Interval.TICK:
             count: int = self.engine.download_tick_data(symbol, exchange, start)
