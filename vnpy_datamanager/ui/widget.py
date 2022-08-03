@@ -1,26 +1,27 @@
-from typing import Tuple, Dict
+from typing import List, Tuple, Dict, Optional
 from functools import partial
 from datetime import datetime, timedelta
 
 from vnpy.trader.ui import QtWidgets, QtCore
 from vnpy.trader.engine import MainEngine, EventEngine
 from vnpy.trader.constant import Interval, Exchange
+from vnpy.trader.object import BarData
 from vnpy.trader.database import DB_TZ
 from vnpy.trader.utility import available_timezones
 
-from ..engine import APP_NAME, ManagerEngine
+from ..engine import APP_NAME, ManagerEngine, BarOverview
 
 
 class ManagerWidget(QtWidgets.QWidget):
     """"""
 
-    def __init__(self, main_engine: MainEngine, event_engine: EventEngine):
+    def __init__(self, main_engine: MainEngine, event_engine: EventEngine) -> None:
         """"""
         super().__init__()
 
         self.engine: ManagerEngine = main_engine.get_engine(APP_NAME)
 
-        self.tree_items: Dict[Tuple, QtWidgets.QTreeWidgetItem] = {}
+        self.tree_items: Dict[tuple, QtWidgets.QTreeWidgetItem] = {}
 
         self.init_ui()
 
@@ -32,30 +33,30 @@ class ManagerWidget(QtWidgets.QWidget):
         self.init_table()
         self.init_child()
 
-        refresh_button = QtWidgets.QPushButton("刷新")
+        refresh_button: QtWidgets.QPushButton = QtWidgets.QPushButton("刷新")
         refresh_button.clicked.connect(self.refresh_tree)
 
-        import_button = QtWidgets.QPushButton("导入数据")
+        import_button: QtWidgets.QPushButton = QtWidgets.QPushButton("导入数据")
         import_button.clicked.connect(self.import_data)
 
-        update_button = QtWidgets.QPushButton("更新数据")
+        update_button: QtWidgets.QPushButton = QtWidgets.QPushButton("更新数据")
         update_button.clicked.connect(self.update_data)
 
-        download_button = QtWidgets.QPushButton("下载数据")
+        download_button: QtWidgets.QPushButton = QtWidgets.QPushButton("下载数据")
         download_button.clicked.connect(self.download_data)
 
-        hbox1 = QtWidgets.QHBoxLayout()
+        hbox1: QtWidgets.QHBoxLayout = QtWidgets.QHBoxLayout()
         hbox1.addWidget(refresh_button)
         hbox1.addStretch()
         hbox1.addWidget(import_button)
         hbox1.addWidget(update_button)
         hbox1.addWidget(download_button)
 
-        hbox2 = QtWidgets.QHBoxLayout()
+        hbox2: QtWidgets.QHBoxLayout = QtWidgets.QHBoxLayout()
         hbox2.addWidget(self.tree)
         hbox2.addWidget(self.table)
 
-        vbox = QtWidgets.QVBoxLayout()
+        vbox: QtWidgets.QVBoxLayout = QtWidgets.QVBoxLayout()
         vbox.addLayout(hbox1)
         vbox.addLayout(hbox2)
 
@@ -63,7 +64,7 @@ class ManagerWidget(QtWidgets.QWidget):
 
     def init_tree(self) -> None:
         """"""
-        labels = [
+        labels: list = [
             "数据",
             "本地代码",
             "代码",
@@ -76,27 +77,27 @@ class ManagerWidget(QtWidgets.QWidget):
             ""
         ]
 
-        self.tree = QtWidgets.QTreeWidget()
+        self.tree: QtWidgets.QTreeWidget = QtWidgets.QTreeWidget()
         self.tree.setColumnCount(len(labels))
         self.tree.setHeaderLabels(labels)
 
     def init_child(self) -> None:
         """"""
-        self.minute_child = QtWidgets.QTreeWidgetItem()
+        self.minute_child: QtWidgets.QTreeWidgetItem = QtWidgets.QTreeWidgetItem()
         self.minute_child.setText(0, "分钟线")
         self.tree.addTopLevelItem(self.minute_child)
 
-        self.hour_child = QtWidgets.QTreeWidgetItem(self.tree)
+        self.hour_child: QtWidgets.QTreeWidgetItem = QtWidgets.QTreeWidgetItem(self.tree)
         self.hour_child.setText(0, "小时线")
         self.tree.addTopLevelItem(self.hour_child)
 
-        self.daily_child = QtWidgets.QTreeWidgetItem(self.tree)
+        self.daily_child: QtWidgets.QTreeWidgetItem = QtWidgets.QTreeWidgetItem(self.tree)
         self.daily_child.setText(0, "日线")
         self.tree.addTopLevelItem(self.daily_child)
 
     def init_table(self) -> None:
         """"""
-        labels = [
+        labels: list = [
             "时间",
             "开盘价",
             "最高价",
@@ -107,7 +108,7 @@ class ManagerWidget(QtWidgets.QWidget):
             "持仓量"
         ]
 
-        self.table = QtWidgets.QTableWidget()
+        self.table: QtWidgets.QTableWidget = QtWidgets.QTableWidget()
         self.table.setColumnCount(len(labels))
         self.table.setHorizontalHeaderLabels(labels)
         self.table.verticalHeader().setVisible(False)
@@ -118,7 +119,7 @@ class ManagerWidget(QtWidgets.QWidget):
     def clear_tree(self) -> None:
         """"""
         for key, item in self.tree_items.items():
-            interval = key[2]
+            interval: str = key[2]
 
             if interval == Interval.MINUTE.value:
                 self.minute_child.removeChild(item)
@@ -133,14 +134,14 @@ class ManagerWidget(QtWidgets.QWidget):
         """"""
         self.clear_tree()
 
-        overviews = self.engine.get_bar_overview()
+        overviews: List[BarOverview] = self.engine.get_bar_overview()
 
         # 基于合约代码进行排序
         overviews.sort(key=lambda x: x.symbol)
 
         for overview in overviews:
-            key = (overview.symbol, overview.exchange, overview.interval)
-            item = self.tree_items.get(key, None)
+            key: tuple = (overview.symbol, overview.exchange, overview.interval)
+            item: Optional[QtWidgets.QTreeWidgetItem] = self.tree_items.get(key, None)
 
             if not item:
                 item = QtWidgets.QTreeWidgetItem()
@@ -157,7 +158,7 @@ class ManagerWidget(QtWidgets.QWidget):
                 else:
                     self.daily_child.addChild(item)
 
-                output_button = QtWidgets.QPushButton("导出")
+                output_button: QtWidgets.QPushButton = QtWidgets.QPushButton("导出")
                 output_func = partial(
                     self.output_data,
                     overview.symbol,
@@ -168,7 +169,7 @@ class ManagerWidget(QtWidgets.QWidget):
                 )
                 output_button.clicked.connect(output_func)
 
-                show_button = QtWidgets.QPushButton("查看")
+                show_button: QtWidgets.QPushButton = QtWidgets.QPushButton("查看")
                 show_func = partial(
                     self.show_data,
                     overview.symbol,
@@ -179,7 +180,7 @@ class ManagerWidget(QtWidgets.QWidget):
                 )
                 show_button.clicked.connect(show_func)
 
-                delete_button = QtWidgets.QPushButton("删除")
+                delete_button: QtWidgets.QPushButton = QtWidgets.QPushButton("删除")
                 delete_func = partial(
                     self.delete_data,
                     overview.symbol,
@@ -202,25 +203,25 @@ class ManagerWidget(QtWidgets.QWidget):
 
     def import_data(self) -> None:
         """"""
-        dialog = ImportDialog()
-        n = dialog.exec_()
+        dialog: ImportDialog = ImportDialog()
+        n: int = dialog.exec_()
         if n != dialog.Accepted:
             return
 
-        file_path = dialog.file_edit.text()
-        symbol = dialog.symbol_edit.text()
+        file_path: str = dialog.file_edit.text()
+        symbol: str = dialog.symbol_edit.text()
         exchange = dialog.exchange_combo.currentData()
         interval = dialog.interval_combo.currentData()
-        tz_name = dialog.tz_combo.currentText()
-        datetime_head = dialog.datetime_edit.text()
-        open_head = dialog.open_edit.text()
-        low_head = dialog.low_edit.text()
-        high_head = dialog.high_edit.text()
-        close_head = dialog.close_edit.text()
-        volume_head = dialog.volume_edit.text()
-        turnover_head = dialog.turnover_edit.text()
-        open_interest_head = dialog.open_interest_edit.text()
-        datetime_format = dialog.format_edit.text()
+        tz_name: str = dialog.tz_combo.currentText()
+        datetime_head: str = dialog.datetime_edit.text()
+        open_head: str = dialog.open_edit.text()
+        low_head: str = dialog.low_edit.text()
+        high_head: str = dialog.high_edit.text()
+        close_head: str = dialog.close_edit.text()
+        volume_head: str = dialog.volume_edit.text()
+        turnover_head: str = dialog.turnover_edit.text()
+        open_interest_head: str = dialog.open_interest_edit.text()
+        datetime_format: str = dialog.format_edit.text()
 
         start, end, count = self.engine.import_data_from_csv(
             file_path,
@@ -239,7 +240,7 @@ class ManagerWidget(QtWidgets.QWidget):
             datetime_format
         )
 
-        msg = f"\
+        msg: str = f"\
         CSV载入成功\n\
         代码：{symbol}\n\
         交易所：{exchange.value}\n\
@@ -260,8 +261,8 @@ class ManagerWidget(QtWidgets.QWidget):
     ) -> None:
         """"""
         # Get output date range
-        dialog = DateRangeDialog(start, end)
-        n = dialog.exec_()
+        dialog: DateRangeDialog = DateRangeDialog(start, end)
+        n: int = dialog.exec_()
         if n != dialog.Accepted:
             return
         start, end = dialog.get_date_range()
@@ -276,7 +277,7 @@ class ManagerWidget(QtWidgets.QWidget):
         if not path:
             return
 
-        result = self.engine.output_data_to_csv(
+        result: bool = self.engine.output_data_to_csv(
             path,
             symbol,
             exchange,
@@ -302,13 +303,13 @@ class ManagerWidget(QtWidgets.QWidget):
     ) -> None:
         """"""
         # Get output date range
-        dialog = DateRangeDialog(start, end)
-        n = dialog.exec_()
+        dialog: DateRangeDialog = DateRangeDialog(start, end)
+        n: int = dialog.exec_()
         if n != dialog.Accepted:
             return
         start, end = dialog.get_date_range()
 
-        bars = self.engine.load_bar_data(
+        bars: List[BarData] = self.engine.load_bar_data(
             symbol,
             exchange,
             interval,
@@ -347,7 +348,7 @@ class ManagerWidget(QtWidgets.QWidget):
         if n == QtWidgets.QMessageBox.Cancel:
             return
 
-        count = self.engine.delete_bar_data(
+        count: int = self.engine.delete_bar_data(
             symbol,
             exchange,
             interval
@@ -362,11 +363,11 @@ class ManagerWidget(QtWidgets.QWidget):
 
     def update_data(self) -> None:
         """"""
-        overviews = self.engine.get_bar_overview()
-        total = len(overviews)
-        count = 0
+        overviews: List[BarOverview] = self.engine.get_bar_overview()
+        total: int = len(overviews)
+        count: int = 0
 
-        dialog = QtWidgets.QProgressDialog(
+        dialog: QtWidgets.QProgressDialog = QtWidgets.QProgressDialog(
             "历史数据更新中",
             "取消",
             0,
@@ -394,7 +395,7 @@ class ManagerWidget(QtWidgets.QWidget):
 
     def download_data(self) -> None:
         """"""
-        dialog = DownloadDialog(self.engine)
+        dialog: DownloadDialog = DownloadDialog(self.engine)
         dialog.exec_()
 
     def show(self) -> None:
@@ -405,7 +406,7 @@ class ManagerWidget(QtWidgets.QWidget):
 class DataCell(QtWidgets.QTableWidgetItem):
     """"""
 
-    def __init__(self, text: str = ""):
+    def __init__(self, text: str = "") -> None:
         super().__init__(text)
 
         self.setTextAlignment(QtCore.Qt.AlignCenter)
@@ -414,20 +415,20 @@ class DataCell(QtWidgets.QTableWidgetItem):
 class DateRangeDialog(QtWidgets.QDialog):
     """"""
 
-    def __init__(self, start: datetime, end: datetime, parent=None):
+    def __init__(self, start: datetime, end: datetime, parent=None) -> None:
         """"""
         super().__init__(parent)
 
         self.setWindowTitle("选择数据区间")
 
-        self.start_edit = QtWidgets.QDateEdit(
+        self.start_edit: QtWidgets.QDateEdit = QtWidgets.QDateEdit(
             QtCore.QDate(
                 start.year,
                 start.month,
                 start.day
             )
         )
-        self.end_edit = QtWidgets.QDateEdit(
+        self.end_edit: QtWidgets.QDateEdit = QtWidgets.QDateEdit(
             QtCore.QDate(
                 end.year,
                 end.month,
@@ -435,10 +436,10 @@ class DateRangeDialog(QtWidgets.QDialog):
             )
         )
 
-        button = QtWidgets.QPushButton("确定")
+        button: QtWidgets.QPushButton = QtWidgets.QPushButton("确定")
         button.clicked.connect(self.accept)
 
-        form = QtWidgets.QFormLayout()
+        form: QtWidgets.QFormLayout = QtWidgets.QFormLayout()
         form.addRow("开始时间", self.start_edit)
         form.addRow("结束时间", self.end_edit)
         form.addRow(button)
@@ -455,7 +456,7 @@ class DateRangeDialog(QtWidgets.QDialog):
 class ImportDialog(QtWidgets.QDialog):
     """"""
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None) -> None:
         """"""
         super().__init__()
 
@@ -466,49 +467,49 @@ class ImportDialog(QtWidgets.QDialog):
             (self.windowFlags() | QtCore.Qt.CustomizeWindowHint)
             & ~QtCore.Qt.WindowMaximizeButtonHint)
 
-        file_button = QtWidgets.QPushButton("选择文件")
+        file_button: QtWidgets.QPushButton = QtWidgets.QPushButton("选择文件")
         file_button.clicked.connect(self.select_file)
 
-        load_button = QtWidgets.QPushButton("确定")
+        load_button: QtWidgets.QPushButton = QtWidgets.QPushButton("确定")
         load_button.clicked.connect(self.accept)
 
-        self.file_edit = QtWidgets.QLineEdit()
-        self.symbol_edit = QtWidgets.QLineEdit()
+        self.file_edit: QtWidgets.QLineEdit = QtWidgets.QLineEdit()
+        self.symbol_edit: QtWidgets.QLineEdit = QtWidgets.QLineEdit()
 
-        self.exchange_combo = QtWidgets.QComboBox()
+        self.exchange_combo: QtWidgets.QComboBox = QtWidgets.QComboBox()
         for i in Exchange:
             self.exchange_combo.addItem(str(i.name), i)
 
-        self.interval_combo = QtWidgets.QComboBox()
+        self.interval_combo: QtWidgets.QComboBox = QtWidgets.QComboBox()
         for i in Interval:
             if i != Interval.TICK:
                 self.interval_combo.addItem(str(i.name), i)
 
-        self.tz_combo = QtWidgets.QComboBox()
+        self.tz_combo: QtWidgets.QComboBox = QtWidgets.QComboBox()
         self.tz_combo.addItems(available_timezones())
         self.tz_combo.setCurrentIndex(self.tz_combo.findText("Asia/Shanghai"))
 
-        self.datetime_edit = QtWidgets.QLineEdit("datetime")
-        self.open_edit = QtWidgets.QLineEdit("open")
-        self.high_edit = QtWidgets.QLineEdit("high")
-        self.low_edit = QtWidgets.QLineEdit("low")
-        self.close_edit = QtWidgets.QLineEdit("close")
-        self.volume_edit = QtWidgets.QLineEdit("volume")
-        self.turnover_edit = QtWidgets.QLineEdit("turnover")
-        self.open_interest_edit = QtWidgets.QLineEdit("open_interest")
+        self.datetime_edit: QtWidgets.QLineEdit = QtWidgets.QLineEdit("datetime")
+        self.open_edit: QtWidgets.QLineEdit = QtWidgets.QLineEdit("open")
+        self.high_edit: QtWidgets.QLineEdit = QtWidgets.QLineEdit("high")
+        self.low_edit: QtWidgets.QLineEdit = QtWidgets.QLineEdit("low")
+        self.close_edit: QtWidgets.QLineEdit = QtWidgets.QLineEdit("close")
+        self.volume_edit: QtWidgets.QLineEdit = QtWidgets.QLineEdit("volume")
+        self.turnover_edit: QtWidgets.QLineEdit = QtWidgets.QLineEdit("turnover")
+        self.open_interest_edit: QtWidgets.QLineEdit = QtWidgets.QLineEdit("open_interest")
 
-        self.format_edit = QtWidgets.QLineEdit("%Y-%m-%d %H:%M:%S")
+        self.format_edit: QtWidgets.QLineEdit = QtWidgets.QLineEdit("%Y-%m-%d %H:%M:%S")
 
-        info_label = QtWidgets.QLabel("合约信息")
+        info_label: QtWidgets.QLabel = QtWidgets.QLabel("合约信息")
         info_label.setAlignment(QtCore.Qt.AlignCenter)
 
-        head_label = QtWidgets.QLabel("表头信息")
+        head_label: QtWidgets.QLabel = QtWidgets.QLabel("表头信息")
         head_label.setAlignment(QtCore.Qt.AlignCenter)
 
-        format_label = QtWidgets.QLabel("格式信息")
+        format_label: QtWidgets.QLabel = QtWidgets.QLabel("格式信息")
         format_label.setAlignment(QtCore.Qt.AlignCenter)
 
-        form = QtWidgets.QFormLayout()
+        form: QtWidgets.QFormLayout = QtWidgets.QFormLayout()
         form.addRow(file_button, self.file_edit)
         form.addRow(QtWidgets.QLabel())
         form.addRow(info_label)
@@ -534,11 +535,11 @@ class ImportDialog(QtWidgets.QDialog):
 
         self.setLayout(form)
 
-    def select_file(self):
+    def select_file(self) -> None:
         """"""
         result: str = QtWidgets.QFileDialog.getOpenFileName(
             self, filter="CSV (*.csv)")
-        filename = result[0]
+        filename: str = result[0]
         if filename:
             self.file_edit.setText(filename)
 
@@ -546,11 +547,11 @@ class ImportDialog(QtWidgets.QDialog):
 class DownloadDialog(QtWidgets.QDialog):
     """"""
 
-    def __init__(self, engine: ManagerEngine, parent=None):
+    def __init__(self, engine: ManagerEngine, parent=None) -> None:
         """"""
         super().__init__()
 
-        self.engine = engine
+        self.engine: ManagerEngine = engine
 
         self.setWindowTitle("下载历史数据")
         self.setFixedWidth(300)
@@ -559,20 +560,20 @@ class DownloadDialog(QtWidgets.QDialog):
             (self.windowFlags() | QtCore.Qt.CustomizeWindowHint)
             & ~QtCore.Qt.WindowMaximizeButtonHint)
 
-        self.symbol_edit = QtWidgets.QLineEdit()
+        self.symbol_edit: QtWidgets.QLineEdit = QtWidgets.QLineEdit()
 
-        self.exchange_combo = QtWidgets.QComboBox()
+        self.exchange_combo: QtWidgets.QComboBox = QtWidgets.QComboBox()
         for i in Exchange:
             self.exchange_combo.addItem(str(i.name), i)
 
-        self.interval_combo = QtWidgets.QComboBox()
+        self.interval_combo: QtWidgets.QComboBox = QtWidgets.QComboBox()
         for i in Interval:
             self.interval_combo.addItem(str(i.name), i)
 
-        end_dt = datetime.now()
-        start_dt = end_dt - timedelta(days=3 * 365)
+        end_dt: datetime = datetime.now()
+        start_dt: datetime = end_dt - timedelta(days=3 * 365)
 
-        self.start_date_edit = QtWidgets.QDateEdit(
+        self.start_date_edit: QtWidgets.QDateEdit = QtWidgets.QDateEdit(
             QtCore.QDate(
                 start_dt.year,
                 start_dt.month,
@@ -580,10 +581,10 @@ class DownloadDialog(QtWidgets.QDialog):
             )
         )
 
-        button = QtWidgets.QPushButton("下载")
+        button: QtWidgets.QPushButton = QtWidgets.QPushButton("下载")
         button.clicked.connect(self.download)
 
-        form = QtWidgets.QFormLayout()
+        form: QtWidgets.QFormLayout = QtWidgets.QFormLayout()
         form.addRow("代码", self.symbol_edit)
         form.addRow("交易所", self.exchange_combo)
         form.addRow("周期", self.interval_combo)
@@ -592,18 +593,18 @@ class DownloadDialog(QtWidgets.QDialog):
 
         self.setLayout(form)
 
-    def download(self):
+    def download(self) -> None:
         """"""
-        symbol = self.symbol_edit.text()
-        exchange = Exchange(self.exchange_combo.currentData())
-        interval = Interval(self.interval_combo.currentData())
+        symbol: str = self.symbol_edit.text()
+        exchange: Exchange = Exchange(self.exchange_combo.currentData())
+        interval: Interval = Interval(self.interval_combo.currentData())
 
         start_date = self.start_date_edit.date()
-        start = datetime(start_date.year(), start_date.month(), start_date.day())
-        start = start.replace(tzinfo=DB_TZ)
+        start: datetime = datetime(start_date.year(), start_date.month(), start_date.day())
+        start: datetime = start.replace(tzinfo=DB_TZ)
 
         if interval == Interval.TICK:
-            count = self.engine.download_tick_data(symbol, exchange, start)
+            count: int = self.engine.download_tick_data(symbol, exchange, start)
         else:
-            count = self.engine.download_bar_data(symbol, exchange, interval, start)
+            count: int = self.engine.download_bar_data(symbol, exchange, interval, start)
         QtWidgets.QMessageBox.information(self, "下载结束", f"下载总数据量：{count}条")
