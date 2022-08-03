@@ -2,14 +2,12 @@ import csv
 from datetime import datetime
 from typing import List, Tuple
 
-from pytz import timezone
-
 from vnpy.trader.engine import BaseEngine, MainEngine, EventEngine
 from vnpy.trader.constant import Interval, Exchange
 from vnpy.trader.object import BarData, HistoryRequest
 from vnpy.trader.database import BaseDatabase, get_database, BarOverview, DB_TZ
 from vnpy.trader.datafeed import BaseDatafeed, get_datafeed
-
+from vnpy.trader.utility import ZoneInfo
 
 APP_NAME = "DataManager"
 
@@ -54,14 +52,14 @@ class ManagerEngine(BaseEngine):
         bars = []
         start = None
         count = 0
-        tz = timezone(tz_name)
+        tz = ZoneInfo(tz_name)
 
         for item in reader:
             if datetime_format:
                 dt = datetime.strptime(item[datetime_head], datetime_format)
             else:
                 dt = datetime.fromisoformat(item[datetime_head])
-            dt = tz.localize(dt)
+            dt = dt.replace(tzinfo=tz)
 
             turnover = item.get(turnover_head, 0)
             open_interest = item.get(open_interest_head, 0)
