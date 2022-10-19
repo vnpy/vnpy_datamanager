@@ -121,9 +121,9 @@ class ManagerWidget(QtWidgets.QWidget):
         for key, item in self.tree_items.items():
             interval: str = key[2]
 
-            if interval == Interval.MINUTE.value:
+            if interval == Interval.MINUTE:
                 self.minute_child.removeChild(item)
-            elif interval == Interval.HOUR.value:
+            elif interval == Interval.HOUR:
                 self.hour_child.removeChild(item)
             else:
                 self.daily_child.removeChild(item)
