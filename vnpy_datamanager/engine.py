@@ -1,6 +1,6 @@
 import csv
 from datetime import datetime
-from typing import List, Optional
+from typing import List, Optional, Callable
 
 from vnpy.trader.engine import BaseEngine, MainEngine, EventEngine
 from vnpy.trader.constant import Interval, Exchange
@@ -185,7 +185,8 @@ class ManagerEngine(BaseEngine):
         symbol: str,
         exchange: Exchange,
         interval: str,
-        start: datetime
+        start: datetime,
+        output: Callable
     ) -> int:
         """
         Query bar data from datafeed.
@@ -208,7 +209,7 @@ class ManagerEngine(BaseEngine):
             )
         # Otherwise use datafeed to query data
         else:
-            data: List[BarData] = self.datafeed.query_bar_history(req)
+            data: List[BarData] = self.datafeed.query_bar_history(req, output)
 
         if data:
             self.database.save_bar_data(data)
@@ -220,7 +221,8 @@ class ManagerEngine(BaseEngine):
         self,
         symbol: str,
         exchange: Exchange,
-        start: datetime
+        start: datetime,
+        output: Callable
     ) -> int:
         """
         Query tick data from datafeed.
@@ -232,7 +234,7 @@ class ManagerEngine(BaseEngine):
             end=datetime.now(DB_TZ)
         )
 
-        data: List[TickData] = self.datafeed.query_tick_history(req)
+        data: List[TickData] = self.datafeed.query_tick_history(req, output)
 
         if data:
             self.database.save_tick_data(data)

@@ -604,7 +604,18 @@ class DownloadDialog(QtWidgets.QDialog):
         start: datetime = start.replace(tzinfo=DB_TZ)
 
         if interval == Interval.TICK:
-            count: int = self.engine.download_tick_data(symbol, exchange, start)
+            count: int = self.engine.download_tick_data(symbol, exchange, start, self.output)
         else:
-            count: int = self.engine.download_bar_data(symbol, exchange, interval, start)
+            count: int = self.engine.download_bar_data(symbol, exchange, interval, start, self.output)
+
         QtWidgets.QMessageBox.information(self, "下载结束", f"下载总数据量：{count}条")
+
+    def output(self, msg: str) -> None:
+        """输出下载过程中的日志"""
+        QtWidgets.QMessageBox.information(
+            self,
+            "数据下载",
+            msg,
+            QtWidgets.QMessageBox.Ok,
+            QtWidgets.QMessageBox.Ok,
+        )
