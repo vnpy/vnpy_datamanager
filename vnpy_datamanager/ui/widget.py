@@ -612,7 +612,7 @@ class DownloadDialog(QtWidgets.QDialog):
 
     def output(self, msg: str) -> None:
         """输出下载过程中的日志"""
-        QtWidgets.QMessageBox.information(
+        QtWidgets.QMessageBox.warning(
             self,
             "数据下载",
             msg,
