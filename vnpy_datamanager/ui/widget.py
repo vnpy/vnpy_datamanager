@@ -385,7 +385,8 @@ class ManagerWidget(QtWidgets.QWidget):
                 overview.symbol,
                 overview.exchange,
                 overview.interval,
-                overview.end
+                overview.end,
+                self.output
             )
             count += 1
             progress = int(round(count / total * 100, 0))
@@ -401,6 +402,16 @@ class ManagerWidget(QtWidgets.QWidget):
     def show(self) -> None:
         """"""
         self.showMaximized()
+
+    def output(self, msg: str) -> None:
+        """输出下载过程中的日志"""
+        QtWidgets.QMessageBox.warning(
+            self,
+            "数据下载",
+            msg,
+            QtWidgets.QMessageBox.Ok,
+            QtWidgets.QMessageBox.Ok,
+        )
 
 
 class DataCell(QtWidgets.QTableWidgetItem):
