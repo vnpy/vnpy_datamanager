@@ -56,7 +56,19 @@ class ManagerEngine(BaseEngine):
 
         for item in reader:
             if datetime_format:
-                dt: datetime = datetime.strptime(item[datetime_head], datetime_format)
+                if datetime_format == "timestamp":
+                    tm: int = int(item[datetime_head])
+
+                    if tm > 9999999999999999:
+                        tm = tm/1000/1000/1000
+                    elif tm > 9999999999999:
+                        tm = tm/1000/1000
+                    elif tm > 9999999999:
+                        tm = tm/1000
+
+                    dt: datetime = datetime.fromtimestamp(tm)
+                else:
+                    dt: datetime = datetime.strptime(item[datetime_head], datetime_format)
             else:
                 dt: datetime = datetime.fromisoformat(item[datetime_head])
             dt = dt.replace(tzinfo=tz)
