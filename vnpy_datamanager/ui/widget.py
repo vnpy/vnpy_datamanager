@@ -23,6 +23,10 @@ class ManagerWidget(QtWidgets.QWidget):
 
         self.tree_items: Dict[tuple, QtWidgets.QTreeWidgetItem] = {}
 
+        self.minute_exchange_childs: Dict[str, QtWidgets.QTreeWidgetItem] = {}
+        self.hour_exchange_childs: Dict[str, QtWidgets.QTreeWidgetItem] = {}
+        self.daily_exchange_childs: Dict[str, QtWidgets.QTreeWidgetItem] = {}
+
         self.init_ui()
 
     def init_ui(self) -> None:
@@ -118,17 +122,19 @@ class ManagerWidget(QtWidgets.QWidget):
 
     def clear_tree(self) -> None:
         """"""
-        for key, item in self.tree_items.items():
-            interval: str = key[2]
+        for item in self.minute_exchange_childs.values():
+            self.minute_child.removeChild(item)
 
-            if interval == Interval.MINUTE:
-                self.minute_child.removeChild(item)
-            elif interval == Interval.HOUR:
-                self.hour_child.removeChild(item)
-            else:
-                self.daily_child.removeChild(item)
+        for item in self.hour_exchange_childs.values():
+            self.hour_child.removeChild(item)
+
+        for item in self.daily_exchange_childs.values():
+            self.daily_child.removeChild(item)
 
         self.tree_items.clear()
+        self.minute_exchange_childs.clear()
+        self.hour_exchange_childs.clear()
+        self.daily_exchange_childs.clear()
 
     def refresh_tree(self) -> None:
         """"""
@@ -142,6 +148,7 @@ class ManagerWidget(QtWidgets.QWidget):
         for overview in overviews:
             key: tuple = (overview.symbol, overview.exchange, overview.interval)
             item: Optional[QtWidgets.QTreeWidgetItem] = self.tree_items.get(key, None)
+            exchange_str: str = overview.exchange.value
 
             if not item:
                 item = QtWidgets.QTreeWidgetItem()
@@ -152,11 +159,34 @@ class ManagerWidget(QtWidgets.QWidget):
                 item.setText(3, overview.exchange.value)
 
                 if overview.interval == Interval.MINUTE:
-                    self.minute_child.addChild(item)
+                    child: Optional[QtWidgets.QTreeWidgetItem] = self.minute_exchange_childs.get(exchange_str, None)
+                    if not child:
+                        child: QtWidgets.QTreeWidgetItem = QtWidgets.QTreeWidgetItem(self.minute_child)
+                        child.setText(0, exchange_str)
+                        child.setExpanded(True)
+
+                    child.addChild(item)
+                    self.minute_exchange_childs[exchange_str] = child
+
                 elif overview.interval == Interval.HOUR:
-                    self.hour_child.addChild(item)
+                    child: Optional[QtWidgets.QTreeWidgetItem] = self.hour_exchange_childs.get(exchange_str, None)
+                    if not child:
+                        child: QtWidgets.QTreeWidgetItem = QtWidgets.QTreeWidgetItem(self.hour_child)
+                        child.setText(0, exchange_str)
+                        child.setExpanded(True)
+
+                    child.addChild(item)
+                    self.hour_exchange_childs[exchange_str] = child
+
                 else:
-                    self.daily_child.addChild(item)
+                    child: Optional[QtWidgets.QTreeWidgetItem] = self.daily_exchange_childs.get(exchange_str, None)
+                    if not child:
+                        child: QtWidgets.QTreeWidgetItem = QtWidgets.QTreeWidgetItem(self.daily_child)
+                        child.setText(0, exchange_str)
+                        child.setExpanded(True)
+
+                    child.addChild(item)
+                    self.daily_exchange_childs[exchange_str] = child
 
                 output_button: QtWidgets.QPushButton = QtWidgets.QPushButton("导出")
                 output_func = partial(
