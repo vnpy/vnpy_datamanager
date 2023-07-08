@@ -1,4 +1,4 @@
-from typing import List, Tuple, Dict, Optional
+from typing import List, Tuple, Dict
 from functools import partial
 from datetime import datetime, timedelta
 
@@ -12,6 +12,13 @@ from vnpy.trader.utility import available_timezones
 from ..engine import APP_NAME, ManagerEngine, BarOverview
 
 
+INTERVAL_NAME_MAP = {
+    Interval.MINUTE: "分钟线",
+    Interval.HOUR: "小时线",
+    Interval.DAILY: "日线",
+}
+
+
 class ManagerWidget(QtWidgets.QWidget):
     """"""
 
@@ -21,12 +28,6 @@ class ManagerWidget(QtWidgets.QWidget):
 
         self.engine: ManagerEngine = main_engine.get_engine(APP_NAME)
 
-        self.tree_items: Dict[tuple, QtWidgets.QTreeWidgetItem] = {}
-
-        self.minute_items: Dict[str, QtWidgets.QTreeWidgetItem] = {}
-        self.hour_items: Dict[str, QtWidgets.QTreeWidgetItem] = {}
-        self.daily_items: Dict[str, QtWidgets.QTreeWidgetItem] = {}
-
         self.init_ui()
 
     def init_ui(self) -> None:
@@ -35,7 +36,6 @@ class ManagerWidget(QtWidgets.QWidget):
 
         self.init_tree()
         self.init_table()
-        self.init_child()
 
         refresh_button: QtWidgets.QPushButton = QtWidgets.QPushButton("刷新")
         refresh_button.clicked.connect(self.refresh_tree)
@@ -85,20 +85,6 @@ class ManagerWidget(QtWidgets.QWidget):
         self.tree.setColumnCount(len(labels))
         self.tree.setHeaderLabels(labels)
 
-    def init_child(self) -> None:
-        """"""
-        self.minute_child: QtWidgets.QTreeWidgetItem = QtWidgets.QTreeWidgetItem()
-        self.minute_child.setText(0, "分钟线")
-        self.tree.addTopLevelItem(self.minute_child)
-
-        self.hour_child: QtWidgets.QTreeWidgetItem = QtWidgets.QTreeWidgetItem(self.tree)
-        self.hour_child.setText(0, "小时线")
-        self.tree.addTopLevelItem(self.hour_child)
-
-        self.daily_child: QtWidgets.QTreeWidgetItem = QtWidgets.QTreeWidgetItem(self.tree)
-        self.daily_child.setText(0, "日线")
-        self.tree.addTopLevelItem(self.daily_child)
-
     def init_table(self) -> None:
         """"""
         labels: list = [
@@ -120,116 +106,90 @@ class ManagerWidget(QtWidgets.QWidget):
             QtWidgets.QHeaderView.ResizeToContents
         )
 
-    def clear_tree(self) -> None:
-        """"""
-        for item in self.minute_items.values():
-            self.minute_child.removeChild(item)
-
-        for item in self.hour_items.values():
-            self.hour_child.removeChild(item)
-
-        for item in self.daily_items.values():
-            self.daily_child.removeChild(item)
-
-        self.tree_items.clear()
-        self.minute_items.clear()
-        self.hour_items.clear()
-        self.daily_items.clear()
-
     def refresh_tree(self) -> None:
         """"""
-        self.clear_tree()
+        self.tree.clear()
 
+        # 初始化节点缓存字典
+        interval_childs: Dict[Interval, QtWidgets.QTreeWidgetItem] = {}
+        exchange_childs: Dict[tuple[Interval, Exchange], QtWidgets.QTreeWidgetItem] = {}
+
+        # 查询数据汇总，并基于合约代码进行排序
         overviews: List[BarOverview] = self.engine.get_bar_overview()
-
-        # 基于合约代码进行排序
         overviews.sort(key=lambda x: x.symbol)
 
+        # 添加数据周期节点
+        for interval in [Interval.MINUTE, Interval.HOUR, Interval.DAILY]:
+            interval_child = QtWidgets.QTreeWidgetItem()
+            interval_childs[interval] = interval_child
+
+            interval_name: str = INTERVAL_NAME_MAP[interval]
+            interval_child.setText(0, interval_name)
+
+        # 遍历添加数据节点
         for overview in overviews:
-            key: tuple = (overview.symbol, overview.exchange, overview.interval)
-            item: Optional[QtWidgets.QTreeWidgetItem] = self.tree_items.get(key, None)
-            exchange_str: str = overview.exchange.value
+            # 获取交易所节点
+            key: tuple = (overview.interval, overview.exchange)
+            exchange_child: QtWidgets.QTreeWidgetItem = exchange_childs.get(key, None)
 
-            if not item:
-                item = QtWidgets.QTreeWidgetItem()
-                self.tree_items[key] = item
+            if not exchange_child:
+                interval_child: QtWidgets.QTreeWidgetItem = interval_childs[overview.interval]
 
-                item.setText(1, f"{overview.symbol}.{overview.exchange.value}")
-                item.setText(2, overview.symbol)
-                item.setText(3, overview.exchange.value)
+                exchange_child: QtWidgets.QTreeWidgetItem = QtWidgets.QTreeWidgetItem(interval_child)
+                exchange_child.setText(0, overview.exchange.value)
 
-                if overview.interval == Interval.MINUTE:
-                    child: Optional[QtWidgets.QTreeWidgetItem] = self.minute_items.get(exchange_str, None)
-                    if not child:
-                        child: QtWidgets.QTreeWidgetItem = QtWidgets.QTreeWidgetItem(self.minute_child)
-                        child.setText(0, exchange_str)
-                        child.setExpanded(True)
+                exchange_childs[key] = exchange_child
 
-                    child.addChild(item)
-                    self.minute_items[exchange_str] = child
+            #  创建数据节点
+            item = QtWidgets.QTreeWidgetItem(exchange_child)
 
-                elif overview.interval == Interval.HOUR:
-                    child: Optional[QtWidgets.QTreeWidgetItem] = self.hour_items.get(exchange_str, None)
-                    if not child:
-                        child: QtWidgets.QTreeWidgetItem = QtWidgets.QTreeWidgetItem(self.hour_child)
-                        child.setText(0, exchange_str)
-                        child.setExpanded(True)
-
-                    child.addChild(item)
-                    self.hour_items[exchange_str] = child
-
-                else:
-                    child: Optional[QtWidgets.QTreeWidgetItem] = self.daily_items.get(exchange_str, None)
-                    if not child:
-                        child: QtWidgets.QTreeWidgetItem = QtWidgets.QTreeWidgetItem(self.daily_child)
-                        child.setText(0, exchange_str)
-                        child.setExpanded(True)
-
-                    child.addChild(item)
-                    self.daily_items[exchange_str] = child
-
-                output_button: QtWidgets.QPushButton = QtWidgets.QPushButton("导出")
-                output_func = partial(
-                    self.output_data,
-                    overview.symbol,
-                    overview.exchange,
-                    overview.interval,
-                    overview.start,
-                    overview.end
-                )
-                output_button.clicked.connect(output_func)
-
-                show_button: QtWidgets.QPushButton = QtWidgets.QPushButton("查看")
-                show_func = partial(
-                    self.show_data,
-                    overview.symbol,
-                    overview.exchange,
-                    overview.interval,
-                    overview.start,
-                    overview.end
-                )
-                show_button.clicked.connect(show_func)
-
-                delete_button: QtWidgets.QPushButton = QtWidgets.QPushButton("删除")
-                delete_func = partial(
-                    self.delete_data,
-                    overview.symbol,
-                    overview.exchange,
-                    overview.interval
-                )
-                delete_button.clicked.connect(delete_func)
-
-                self.tree.setItemWidget(item, 7, show_button)
-                self.tree.setItemWidget(item, 8, output_button)
-                self.tree.setItemWidget(item, 9, delete_button)
-
+            item.setText(1, f"{overview.symbol}.{overview.exchange.value}")
+            item.setText(2, overview.symbol)
+            item.setText(3, overview.exchange.value)
             item.setText(4, str(overview.count))
             item.setText(5, overview.start.strftime("%Y-%m-%d %H:%M:%S"))
             item.setText(6, overview.end.strftime("%Y-%m-%d %H:%M:%S"))
 
-        self.minute_child.setExpanded(True)
-        self.hour_child.setExpanded(True)
-        self.daily_child.setExpanded(True)
+            output_button: QtWidgets.QPushButton = QtWidgets.QPushButton("导出")
+            output_func = partial(
+                self.output_data,
+                overview.symbol,
+                overview.exchange,
+                overview.interval,
+                overview.start,
+                overview.end
+            )
+            output_button.clicked.connect(output_func)
+
+            show_button: QtWidgets.QPushButton = QtWidgets.QPushButton("查看")
+            show_func = partial(
+                self.show_data,
+                overview.symbol,
+                overview.exchange,
+                overview.interval,
+                overview.start,
+                overview.end
+            )
+            show_button.clicked.connect(show_func)
+
+            delete_button: QtWidgets.QPushButton = QtWidgets.QPushButton("删除")
+            delete_func = partial(
+                self.delete_data,
+                overview.symbol,
+                overview.exchange,
+                overview.interval
+            )
+            delete_button.clicked.connect(delete_func)
+
+            self.tree.setItemWidget(item, 7, show_button)
+            self.tree.setItemWidget(item, 8, output_button)
+            self.tree.setItemWidget(item, 9, delete_button)
+
+        # 展开顶层节点
+        self.tree.addTopLevelItems(list(interval_childs.values()))
+
+        for interval_child in interval_childs.values():
+            interval_child.setExpanded(True)
 
     def import_data(self) -> None:
         """"""

@@ -213,7 +213,7 @@ class ManagerEngine(BaseEngine):
 
         if data:
             self.database.save_bar_data(data)
-            return(len(data))
+            return (len(data))
 
         return 0
 
@@ -238,6 +238,6 @@ class ManagerEngine(BaseEngine):
 
         if data:
             self.database.save_tick_data(data)
-            return(len(data))
+            return (len(data))
 
         return 0
