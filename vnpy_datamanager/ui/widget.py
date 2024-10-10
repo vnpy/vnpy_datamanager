@@ -103,7 +103,7 @@ class ManagerWidget(QtWidgets.QWidget):
         self.table.setHorizontalHeaderLabels(labels)
         self.table.verticalHeader().setVisible(False)
         self.table.horizontalHeader().setSectionResizeMode(
-            QtWidgets.QHeaderView.ResizeToContents
+            QtWidgets.QHeaderView.ResizeMode.ResizeToContents
         )
 
     def refresh_tree(self) -> None:
@@ -195,7 +195,7 @@ class ManagerWidget(QtWidgets.QWidget):
         """"""
         dialog: ImportDialog = ImportDialog()
         n: int = dialog.exec_()
-        if n != dialog.Accepted:
+        if n != dialog.DialogCode.Accepted:
             return
 
         file_path: str = dialog.file_edit.text()
@@ -253,7 +253,7 @@ class ManagerWidget(QtWidgets.QWidget):
         # Get output date range
         dialog: DateRangeDialog = DateRangeDialog(start, end)
         n: int = dialog.exec_()
-        if n != dialog.Accepted:
+        if n != dialog.DialogCode.Accepted:
             return
         start, end = dialog.get_date_range()
 
@@ -295,7 +295,7 @@ class ManagerWidget(QtWidgets.QWidget):
         # Get output date range
         dialog: DateRangeDialog = DateRangeDialog(start, end)
         n: int = dialog.exec_()
-        if n != dialog.Accepted:
+        if n != dialog.DialogCode.Accepted:
             return
         start, end = dialog.get_date_range()
 
@@ -410,7 +410,7 @@ class DataCell(QtWidgets.QTableWidgetItem):
     def __init__(self, text: str = "") -> None:
         super().__init__(text)
 
-        self.setTextAlignment(QtCore.Qt.AlignCenter)
+        self.setTextAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
 
 
 class DateRangeDialog(QtWidgets.QDialog):
@@ -502,13 +502,13 @@ class ImportDialog(QtWidgets.QDialog):
         self.format_edit: QtWidgets.QLineEdit = QtWidgets.QLineEdit("%Y-%m-%d %H:%M:%S")
 
         info_label: QtWidgets.QLabel = QtWidgets.QLabel("合约信息")
-        info_label.setAlignment(QtCore.Qt.AlignCenter)
+        info_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
 
         head_label: QtWidgets.QLabel = QtWidgets.QLabel("表头信息")
-        head_label.setAlignment(QtCore.Qt.AlignCenter)
+        head_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
 
         format_label: QtWidgets.QLabel = QtWidgets.QLabel("格式信息")
-        format_label.setAlignment(QtCore.Qt.AlignCenter)
+        format_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
 
         form: QtWidgets.QFormLayout = QtWidgets.QFormLayout()
         form.addRow(file_button, self.file_edit)
