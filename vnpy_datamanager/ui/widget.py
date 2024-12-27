@@ -107,7 +107,7 @@ class ManagerWidget(QtWidgets.QWidget):
         self.table.horizontalHeader().setSectionResizeMode(
             QtWidgets.QHeaderView.ResizeMode.ResizeToContents
         )
-    
+
     def setting_bar_table(self) -> None:
         """"""
         labels: list = [
@@ -123,7 +123,7 @@ class ManagerWidget(QtWidgets.QWidget):
 
         self.table.setColumnCount(len(labels))
         self.table.setHorizontalHeaderLabels(labels)
-    
+
     def setting_tick_table(self) -> None:
         """"""
         labels: list = [
@@ -205,12 +205,16 @@ class ManagerWidget(QtWidgets.QWidget):
             output_button.clicked.connect(output_func)
 
             show_button: QtWidgets.QPushButton = QtWidgets.QPushButton("查看")
+            show_start: datetime = overview.start
+            if interval == Interval.TICK:
+                # 如果是 tick 数据，则默认只看最近10天，避免爆内存
+                show_start = max(overview.end - timedelta(days=10), overview.start)
             show_func = partial(
                 self.show_data,
                 overview.symbol,
                 overview.exchange,
                 interval,
-                overview.start,
+                show_start,
                 overview.end
             )
             show_button.clicked.connect(show_func)
@@ -343,7 +347,7 @@ class ManagerWidget(QtWidgets.QWidget):
 
         self.table.setRowCount(0)
         start, end = dialog.get_date_range()
-        
+
         if interval == Interval.TICK:
             ticks: List[TickData] = self.engine.load_tick_data(
                 symbol,
@@ -553,9 +557,12 @@ class ImportDialog(QtWidgets.QDialog):
         self.setWindowTitle("从CSV文件导入数据")
         self.setFixedWidth(300)
 
-        self.setWindowFlags(
-            (self.windowFlags() | QtCore.Qt.CustomizeWindowHint)
-            & ~QtCore.Qt.WindowMaximizeButtonHint)
+        # 设定为固定大小窗口，原方法在windows系统时，会让对话框的关闭按钮不可点击
+        if platform.system() == 'Windows':
+            flags = self.windowFlags() | QtCore.Qt.CustomizeWindowHint | QtCore.Qt.WindowType.MSWindowsFixedSizeDialogHint
+        else:
+            flags = (self.windowFlags() | QtCore.Qt.CustomizeWindowHint) & ~QtCore.Qt.WindowMaximizeButtonHint
+        self.setWindowFlags(flags)
 
         file_button: QtWidgets.QPushButton = QtWidgets.QPushButton("选择文件")
         file_button.clicked.connect(self.select_file)
@@ -646,17 +653,12 @@ class DownloadDialog(QtWidgets.QDialog):
         self.setWindowTitle("下载历史数据")
         self.setFixedWidth(300)
 
-        # 原方法在windows系统时，会让对话框的关闭按钮不可点击
+        # 设定为固定大小窗口，原方法在windows系统时，会让对话框的关闭按钮不可点击
         if platform.system() == 'Windows':
-            # 设定为固定大小窗口
-            self.setWindowFlags(
-                self.windowFlags() | QtCore.Qt.CustomizeWindowHint | QtCore.Qt.WindowType.MSWindowsFixedSizeDialogHint
-                )
+            flags = self.windowFlags() | QtCore.Qt.CustomizeWindowHint | QtCore.Qt.WindowType.MSWindowsFixedSizeDialogHint
         else:
-            self.setWindowFlags(
-                (self.windowFlags() | QtCore.Qt.CustomizeWindowHint)
-                & ~QtCore.Qt.WindowMaximizeButtonHint
-                )
+            flags = (self.windowFlags() | QtCore.Qt.CustomizeWindowHint) & ~QtCore.Qt.WindowMaximizeButtonHint
+        self.setWindowFlags(flags)
 
         self.symbol_edit: QtWidgets.QLineEdit = QtWidgets.QLineEdit()
 
