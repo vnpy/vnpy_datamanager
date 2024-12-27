@@ -1,5 +1,5 @@
 import csv
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import List, Optional, Callable
 
 from vnpy.trader.engine import BaseEngine, MainEngine, EventEngine
@@ -220,7 +220,7 @@ class ManagerEngine(BaseEngine):
             return (len(data))
 
         return 0
-    
+
     def load_tick_data(
         self,
         symbol: str,
@@ -237,7 +237,7 @@ class ManagerEngine(BaseEngine):
         )
 
         return ticks
-    
+
     def delete_tick_data(
         self,
         symbol: str,
@@ -261,18 +261,26 @@ class ManagerEngine(BaseEngine):
         """
         Query tick data from datafeed.
         """
-        req: HistoryRequest = HistoryRequest(
-            symbol=symbol,
-            exchange=exchange,
-            start=start,
-            end=datetime.now(DB_TZ),
-            interval = Interval.TICK,
-        )
+        start_dt: datetime = start
+        end_dt: datetime = datetime.now(DB_TZ)
+        count: int = 0
 
-        data: List[TickData] = self.datafeed.query_tick_history(req, output)
+        while start_dt < end_dt:
+            new_start_dt: datetime = min(start_dt+timedelta(days=10), end_dt)
 
-        if data:
-            self.database.save_tick_data(data)
-            return (len(data))
+            req: HistoryRequest = HistoryRequest(
+                symbol=symbol,
+                exchange=exchange,
+                start=start_dt,
+                end=new_start_dt,
+                interval=Interval.TICK,
+            )
 
-        return 0
+            data: List[TickData] = self.datafeed.query_tick_history(req, output)
+            start_dt = new_start_dt
+
+            if data:
+                self.database.save_tick_data(data)
+                count += len(data)
+
+        return count
