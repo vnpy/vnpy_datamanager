@@ -1,11 +1,12 @@
 import csv
-from datetime import datetime
+from datetime import datetime, timedelta
+from typing import List, Optional
 from collections.abc import Callable
 
 from vnpy.trader.engine import BaseEngine, MainEngine, EventEngine
 from vnpy.trader.constant import Interval, Exchange
 from vnpy.trader.object import BarData, TickData, ContractData, HistoryRequest
-from vnpy.trader.database import BaseDatabase, get_database, BarOverview, DB_TZ
+from vnpy.trader.database import BaseDatabase, get_database, BarOverview, TickOverview, DB_TZ
 from vnpy.trader.datafeed import BaseDatafeed, get_datafeed
 from vnpy.trader.utility import ZoneInfo
 
@@ -147,6 +148,10 @@ class ManagerEngine(BaseEngine):
         overview: list[BarOverview] = self.database.get_bar_overview()
         return overview
 
+    def get_tick_overview(self) -> List[TickOverview]:
+        """"""
+        return self.database.get_tick_overview()
+
     def load_bar_data(
         self,
         symbol: str,
@@ -218,6 +223,36 @@ class ManagerEngine(BaseEngine):
 
         return 0
 
+    def load_tick_data(
+        self,
+        symbol: str,
+        exchange: Exchange,
+        start: datetime,
+        end: datetime
+    ) -> List[TickData]:
+        """"""
+        ticks: List[TickData] = self.database.load_tick_data(
+            symbol,
+            exchange,
+            start,
+            end
+        )
+
+        return ticks
+
+    def delete_tick_data(
+        self,
+        symbol: str,
+        exchange: Exchange,
+    ) -> int:
+        """"""
+        count: int = self.database.delete_tick_data(
+            symbol,
+            exchange,
+        )
+
+        return count
+
     def download_tick_data(
         self,
         symbol: str,
@@ -228,17 +263,26 @@ class ManagerEngine(BaseEngine):
         """
         Query tick data from datafeed.
         """
-        req: HistoryRequest = HistoryRequest(
-            symbol=symbol,
-            exchange=exchange,
-            start=start,
-            end=datetime.now(DB_TZ)
-        )
+        start_dt: datetime = start
+        end_dt: datetime = datetime.now(DB_TZ)
+        count: int = 0
 
-        data: list[TickData] = self.datafeed.query_tick_history(req, output)
+        while start_dt < end_dt:
+            new_start_dt: datetime = min(start_dt+timedelta(days=10), end_dt)
 
-        if data:
-            self.database.save_tick_data(data)
-            return (len(data))
+            req: HistoryRequest = HistoryRequest(
+                symbol=symbol,
+                exchange=exchange,
+                start=start_dt,
+                end=new_start_dt,
+                interval=Interval.TICK,
+            )
 
-        return 0
+            data: List[TickData] = self.datafeed.query_tick_history(req, output)
+            start_dt = new_start_dt
+
+            if data:
+                self.database.save_tick_data(data)
+                count += len(data)
+
+        return count
