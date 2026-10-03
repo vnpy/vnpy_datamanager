@@ -19,6 +19,7 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+"""数据管理应用包。"""
 
 from pathlib import Path
 
@@ -37,7 +38,7 @@ __version__ = "1.2.0"
 
 
 class DataManagerApp(BaseApp):
-    """"""
+    """数据管理应用。"""
 
     app_name: str = APP_NAME
     app_module: str = __module__

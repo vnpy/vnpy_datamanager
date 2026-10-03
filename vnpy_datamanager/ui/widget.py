@@ -1,3 +1,4 @@
+"""数据管理界面组件。"""
 from functools import partial
 from datetime import datetime, timedelta
 
@@ -19,10 +20,10 @@ INTERVAL_NAME_MAP = {
 
 
 class ManagerWidget(QtWidgets.QWidget):
-    """"""
+    """数据管理主界面。"""
 
     def __init__(self, main_engine: MainEngine, event_engine: EventEngine) -> None:
-        """"""
+        """取得数据管理引擎并初始化界面。"""
         super().__init__()
 
         self.engine: ManagerEngine = main_engine.get_engine(APP_NAME)
@@ -30,7 +31,7 @@ class ManagerWidget(QtWidgets.QWidget):
         self.init_ui()
 
     def init_ui(self) -> None:
-        """"""
+        """搭建数据树、K 线表和刷新、导入、更新、下载按钮。"""
         self.setWindowTitle("数据管理")
 
         self.init_tree()
@@ -66,7 +67,7 @@ class ManagerWidget(QtWidgets.QWidget):
         self.setLayout(vbox)
 
     def init_tree(self) -> None:
-        """"""
+        """创建数据概况树及其表头。"""
         labels: list = [
             "数据",
             "本地代码",
@@ -85,7 +86,7 @@ class ManagerWidget(QtWidgets.QWidget):
         self.tree.setHeaderLabels(labels)
 
     def init_table(self) -> None:
-        """"""
+        """创建 K 线表格，列宽按内容调整。"""
         labels: list = [
             "时间",
             "开盘价",
@@ -106,7 +107,7 @@ class ManagerWidget(QtWidgets.QWidget):
         )
 
     def refresh_tree(self) -> None:
-        """"""
+        """清空概况树，并按周期、交易所和合约重新挂上数据节点。"""
         self.tree.clear()
 
         # 初始化节点缓存字典
@@ -191,7 +192,7 @@ class ManagerWidget(QtWidgets.QWidget):
             interval_child.setExpanded(True)
 
     def import_data(self) -> None:
-        """"""
+        """确认 CSV 导入参数后写入数据库并提示起止时间与条数，取消对话框则返回。"""
         dialog: ImportDialog = ImportDialog()
         n: int = dialog.exec_()
         if n != dialog.DialogCode.Accepted:
@@ -248,7 +249,7 @@ class ManagerWidget(QtWidgets.QWidget):
         start: datetime,
         end: datetime
     ) -> None:
-        """"""
+        """选择时间区间和 CSV 路径后导出，文件被占用时提示失败。"""
         # Get output date range
         dialog: DateRangeDialog = DateRangeDialog(start, end)
         n: int = dialog.exec_()
@@ -290,7 +291,7 @@ class ManagerWidget(QtWidgets.QWidget):
         start: datetime,
         end: datetime
     ) -> None:
-        """"""
+        """选择时间区间后，把 K 线填入表格。"""
         # Get output date range
         dialog: DateRangeDialog = DateRangeDialog(start, end)
         n: int = dialog.exec_()
@@ -325,7 +326,7 @@ class ManagerWidget(QtWidgets.QWidget):
         exchange: Exchange,
         interval: Interval
     ) -> None:
-        """"""
+        """确认后删除该合约和周期的全部 K 线，并提示删除条数。"""
         n = QtWidgets.QMessageBox.warning(
             self,
             "删除确认",
@@ -351,7 +352,7 @@ class ManagerWidget(QtWidgets.QWidget):
         )
 
     def update_data(self) -> None:
-        """"""
+        """遍历已有 K 线概况，从各自结束时间继续下载，进度框可取消。"""
         overviews: list[BarOverview] = self.engine.get_bar_overview()
         total: int = len(overviews)
         count: int = 0
@@ -384,12 +385,12 @@ class ManagerWidget(QtWidgets.QWidget):
         dialog.close()
 
     def download_data(self) -> None:
-        """"""
+        """打开历史数据下载对话框。"""
         dialog: DownloadDialog = DownloadDialog(self.engine)
         dialog.exec_()
 
     def show(self) -> None:
-        """"""
+        """最大化显示窗口。"""
         self.showMaximized()
 
     def output(self, msg: str) -> None:
@@ -404,19 +405,20 @@ class ManagerWidget(QtWidgets.QWidget):
 
 
 class DataCell(QtWidgets.QTableWidgetItem):
-    """"""
+    """居中对齐的表格单元格。"""
 
     def __init__(self, text: str = "") -> None:
+        """用给定文本创建居中对齐的单元格。"""
         super().__init__(text)
 
         self.setTextAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
 
 
 class DateRangeDialog(QtWidgets.QDialog):
-    """"""
+    """选择数据起止时间的对话框。"""
 
     def __init__(self, start: datetime, end: datetime, parent: QtWidgets.QWidget | None = None) -> None:
-        """"""
+        """用起止日期的下一天作为日期框初值。"""
         super().__init__(parent)
 
         self.setWindowTitle("选择数据区间")
@@ -447,17 +449,17 @@ class DateRangeDialog(QtWidgets.QDialog):
         self.setLayout(form)
 
     def get_date_range(self) -> tuple[datetime, datetime]:
-        """"""
+        """返回开始时间，以及结束日期的下一天。"""
         start = self.start_edit.dateTime().toPython()
         end = self.end_edit.dateTime().toPython() + timedelta(days=1)
         return start, end
 
 
 class ImportDialog(QtWidgets.QDialog):
-    """"""
+    """从 CSV 文件导入数据的对话框。"""
 
     def __init__(self, parent: QtWidgets.QWidget | None = None) -> None:
-        """"""
+        """创建 CSV 导入表单，周期列表不含 Tick。"""
         super().__init__()
 
         self.setWindowTitle("从CSV文件导入数据")
@@ -536,7 +538,7 @@ class ImportDialog(QtWidgets.QDialog):
         self.setLayout(form)
 
     def select_file(self) -> None:
-        """"""
+        """选择 CSV 文件并填入路径。"""
         result: str = QtWidgets.QFileDialog.getOpenFileName(
             self, filter="CSV (*.csv)")
         filename: str = result[0]
@@ -545,10 +547,10 @@ class ImportDialog(QtWidgets.QDialog):
 
 
 class DownloadDialog(QtWidgets.QDialog):
-    """"""
+    """下载历史数据的对话框。"""
 
     def __init__(self, engine: ManagerEngine, parent: QtWidgets.QWidget | None = None) -> None:
-        """"""
+        """创建下载表单，开始日期默认为三年前。"""
         super().__init__()
 
         self.engine: ManagerEngine = engine
@@ -590,7 +592,7 @@ class DownloadDialog(QtWidgets.QDialog):
         self.setLayout(form)
 
     def download(self) -> None:
-        """"""
+        """Tick 周期下载 Tick，否则下载 K 线，并提示条数。"""
         symbol: str = self.symbol_edit.text()
         exchange: Exchange = Exchange(self.exchange_combo.currentData())
         interval: Interval = Interval(self.interval_combo.currentData())

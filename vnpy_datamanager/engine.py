@@ -1,3 +1,4 @@
+"""历史数据的导入、导出、查询和下载。"""
 import csv
 from datetime import datetime
 from collections.abc import Callable
@@ -13,14 +14,14 @@ APP_NAME = "DataManager"
 
 
 class ManagerEngine(BaseEngine):
-    """"""
+    """历史数据的导入、导出、查询和下载。"""
 
     def __init__(
         self,
         main_engine: MainEngine,
         event_engine: EventEngine,
     ) -> None:
-        """"""
+        """取得数据库和数据服务。"""
         super().__init__(main_engine, event_engine, APP_NAME)
 
         self.database: BaseDatabase = get_database()
@@ -43,7 +44,7 @@ class ManagerEngine(BaseEngine):
         open_interest_head: str,
         datetime_format: str
     ) -> tuple:
-        """"""
+        """按表头解析 CSV 并写入 K 线：指定了时间格式则按该格式解析，否则用 fromisoformat；成交额或持仓量缺列时记为 0，返回开始时间、结束时间和条数。"""
         with open(file_path) as f:
             buf: list = [line.replace("\0", "") for line in f]
 
@@ -102,7 +103,7 @@ class ManagerEngine(BaseEngine):
         start: datetime,
         end: datetime
     ) -> bool:
-        """"""
+        """把区间内 K 线写成 CSV，成功返回 True，没有写权限时返回 False。"""
         bars: list[BarData] = self.load_bar_data(symbol, exchange, interval, start, end)
 
         fieldnames: list = [
@@ -143,7 +144,7 @@ class ManagerEngine(BaseEngine):
             return False
 
     def get_bar_overview(self) -> list[BarOverview]:
-        """"""
+        """返回数据库中的 K 线概况。"""
         overview: list[BarOverview] = self.database.get_bar_overview()
         return overview
 
@@ -155,7 +156,7 @@ class ManagerEngine(BaseEngine):
         start: datetime,
         end: datetime
     ) -> list[BarData]:
-        """"""
+        """从数据库加载指定区间的 K 线。"""
         bars: list[BarData] = self.database.load_bar_data(
             symbol,
             exchange,
@@ -172,7 +173,7 @@ class ManagerEngine(BaseEngine):
         exchange: Exchange,
         interval: Interval
     ) -> int:
-        """"""
+        """删除该合约和周期的 K 线并返回删除条数。"""
         count: int = self.database.delete_bar_data(
             symbol,
             exchange,
@@ -190,7 +191,7 @@ class ManagerEngine(BaseEngine):
         output: Callable
     ) -> int:
         """
-        Query bar data from datafeed.
+        从数据服务查询 K 线数据。
         """
         req: HistoryRequest = HistoryRequest(
             symbol=symbol,
@@ -226,7 +227,7 @@ class ManagerEngine(BaseEngine):
         output: Callable
     ) -> int:
         """
-        Query tick data from datafeed.
+        从数据服务查询 Tick 数据。
         """
         req: HistoryRequest = HistoryRequest(
             symbol=symbol,
