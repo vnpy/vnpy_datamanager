@@ -186,7 +186,7 @@ class ManagerEngine(BaseEngine):
         self,
         symbol: str,
         exchange: Exchange,
-        interval: str,
+        interval: Interval,
         start: datetime,
         output: Callable
     ) -> int:
