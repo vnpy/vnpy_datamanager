@@ -14,7 +14,7 @@ from vnpy.trader.utility import available_timezones
 from ..engine import APP_NAME, ManagerEngine, BarOverview
 
 
-INTERVAL_NAME_MAP = {
+INTERVAL_NAME_MAP: dict[Interval, str] = {
     Interval.MINUTE: "分钟线",
     Interval.HOUR: "小时线",
     Interval.DAILY: "日线",
@@ -121,14 +121,16 @@ class ManagerWidget(QtWidgets.QWidget):
         overviews.sort(key=lambda x: x.symbol)
 
         # 添加数据周期节点
+        interval: Interval
         for interval in [Interval.MINUTE, Interval.HOUR, Interval.DAILY]:
-            interval_child = QtWidgets.QTreeWidgetItem()
+            interval_child: QtWidgets.QTreeWidgetItem = QtWidgets.QTreeWidgetItem()
             interval_childs[interval] = interval_child
 
             interval_name: str = INTERVAL_NAME_MAP[interval]
             interval_child.setText(0, interval_name)
 
         # 遍历添加数据节点
+        overview: BarOverview
         for overview in overviews:
             interval = cast(Interval, overview.interval)
             exchange: Exchange = cast(Exchange, overview.exchange)
@@ -148,7 +150,7 @@ class ManagerWidget(QtWidgets.QWidget):
                 exchange_childs[key] = exchange_child
 
             #  创建数据节点
-            item = QtWidgets.QTreeWidgetItem(exchange_child)
+            item: QtWidgets.QTreeWidgetItem = QtWidgets.QTreeWidgetItem(exchange_child)
 
             item.setText(1, f"{overview.symbol}.{exchange.value}")
             item.setText(2, overview.symbol)
@@ -158,7 +160,7 @@ class ManagerWidget(QtWidgets.QWidget):
             item.setText(6, end.strftime("%Y-%m-%d %H:%M:%S"))
 
             output_button: QtWidgets.QPushButton = QtWidgets.QPushButton("导出")
-            output_func = partial(
+            output_func: partial[None] = partial(
                 self.output_data,
                 overview.symbol,
                 exchange,
@@ -169,7 +171,7 @@ class ManagerWidget(QtWidgets.QWidget):
             output_button.clicked.connect(output_func)
 
             show_button: QtWidgets.QPushButton = QtWidgets.QPushButton("查看")
-            show_func = partial(
+            show_func: partial[None] = partial(
                 self.show_data,
                 overview.symbol,
                 exchange,
@@ -180,7 +182,7 @@ class ManagerWidget(QtWidgets.QWidget):
             show_button.clicked.connect(show_func)
 
             delete_button: QtWidgets.QPushButton = QtWidgets.QPushButton("删除")
-            delete_func = partial(
+            delete_func: partial[None] = partial(
                 self.delete_data,
                 overview.symbol,
                 exchange,
@@ -207,8 +209,8 @@ class ManagerWidget(QtWidgets.QWidget):
 
         file_path: str = dialog.file_edit.text()
         symbol: str = dialog.symbol_edit.text()
-        exchange = dialog.exchange_combo.currentData()
-        interval = dialog.interval_combo.currentData()
+        exchange: Exchange = dialog.exchange_combo.currentData()
+        interval: Interval = dialog.interval_combo.currentData()
         tz_name: str = dialog.tz_combo.currentText()
         datetime_head: str = dialog.datetime_edit.text()
         open_head: str = dialog.open_edit.text()
@@ -220,6 +222,9 @@ class ManagerWidget(QtWidgets.QWidget):
         open_interest_head: str = dialog.open_interest_edit.text()
         datetime_format: str = dialog.format_edit.text()
 
+        start: datetime | None
+        end: datetime
+        count: int
         start, end, count = self.engine.import_data_from_csv(
             file_path,
             symbol,
@@ -265,6 +270,7 @@ class ManagerWidget(QtWidgets.QWidget):
         start, end = dialog.get_date_range()
 
         # Get output file path
+        path: str
         path, _ = QtWidgets.QFileDialog.getSaveFileName(
             self,
             "导出数据",
@@ -317,6 +323,8 @@ class ManagerWidget(QtWidgets.QWidget):
         self.table.setRowCount(0)
         self.table.setRowCount(len(bars))
 
+        row: int
+        bar: BarData
         for row, bar in enumerate(bars):
             self.table.setItem(row, 0, DataCell(bar.datetime.strftime("%Y-%m-%d %H:%M:%S")))
             self.table.setItem(row, 1, DataCell(str(bar.open_price)))
@@ -334,7 +342,7 @@ class ManagerWidget(QtWidgets.QWidget):
         interval: Interval
     ) -> None:
         """确认后删除该合约和周期的全部 K 线，并提示删除条数。"""
-        n = QtWidgets.QMessageBox.warning(
+        n: QtWidgets.QMessageBox.StandardButton = QtWidgets.QMessageBox.warning(
             self,
             "删除确认",
             f"请确认是否要删除{symbol} {exchange.value} {interval.value}的全部数据",
@@ -374,6 +382,7 @@ class ManagerWidget(QtWidgets.QWidget):
         dialog.setWindowModality(QtCore.Qt.WindowModality.WindowModal)
         dialog.setValue(0)
 
+        overview: BarOverview
         for overview in overviews:
             if dialog.wasCanceled():
                 break
@@ -386,7 +395,7 @@ class ManagerWidget(QtWidgets.QWidget):
                 self.output
             )
             count += 1
-            progress = int(round(count / total * 100, 0))
+            progress: int = int(round(count / total * 100, 0))
             dialog.setValue(progress)
 
         dialog.close()
@@ -486,10 +495,12 @@ class ImportDialog(QtWidgets.QDialog):
         self.symbol_edit: QtWidgets.QLineEdit = QtWidgets.QLineEdit()
 
         self.exchange_combo: QtWidgets.QComboBox = QtWidgets.QComboBox()
+        exchange: Exchange
         for exchange in Exchange:
             self.exchange_combo.addItem(str(exchange.name), exchange)
 
         self.interval_combo: QtWidgets.QComboBox = QtWidgets.QComboBox()
+        interval: Interval
         for interval in Interval:
             if interval != Interval.TICK:
                 self.interval_combo.addItem(str(interval.name), interval)
@@ -568,10 +579,12 @@ class DownloadDialog(QtWidgets.QDialog):
         self.symbol_edit: QtWidgets.QLineEdit = QtWidgets.QLineEdit()
 
         self.exchange_combo: QtWidgets.QComboBox = QtWidgets.QComboBox()
+        exchange: Exchange
         for exchange in Exchange:
             self.exchange_combo.addItem(str(exchange.name), exchange)
 
         self.interval_combo: QtWidgets.QComboBox = QtWidgets.QComboBox()
+        interval: Interval
         for interval in Interval:
             self.interval_combo.addItem(str(interval.name), interval)
 
@@ -604,7 +617,7 @@ class DownloadDialog(QtWidgets.QDialog):
         exchange: Exchange = Exchange(self.exchange_combo.currentData())
         interval: Interval = Interval(self.interval_combo.currentData())
 
-        start_date = self.start_date_edit.date()
+        start_date: QtCore.QDate = self.start_date_edit.date()
         start: datetime = datetime(start_date.year(), start_date.month(), start_date.day())
         start = start.replace(tzinfo=DB_TZ)
 

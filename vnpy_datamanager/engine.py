@@ -2,6 +2,7 @@
 import csv
 from datetime import datetime
 from collections.abc import Callable
+from typing import TextIO
 
 from vnpy.trader.engine import BaseEngine, MainEngine, EventEngine
 from vnpy.trader.constant import Interval, Exchange
@@ -10,7 +11,7 @@ from vnpy.trader.database import BaseDatabase, get_database, BarOverview, DB_TZ
 from vnpy.trader.datafeed import BaseDatafeed, get_datafeed
 from vnpy.trader.utility import ZoneInfo
 
-APP_NAME = "DataManager"
+APP_NAME: str = "DataManager"
 
 
 class ManagerEngine(BaseEngine):
@@ -45,6 +46,7 @@ class ManagerEngine(BaseEngine):
         datetime_format: str
     ) -> tuple:
         """按表头解析 CSV 并写入 K 线：指定了时间格式则按该格式解析，否则用 fromisoformat；成交额或持仓量缺列时记为 0，返回开始时间、结束时间和条数。"""
+        f: TextIO
         with open(file_path) as f:
             buf: list = [line.replace("\0", "") for line in f]
 
@@ -55,6 +57,7 @@ class ManagerEngine(BaseEngine):
         count: int = 0
         tz: ZoneInfo = ZoneInfo(tz_name)
 
+        item: dict[str, str]
         for item in reader:
             if datetime_format:
                 dt: datetime = datetime.strptime(item[datetime_head], datetime_format)
@@ -62,8 +65,8 @@ class ManagerEngine(BaseEngine):
                 dt = datetime.fromisoformat(item[datetime_head])
             dt = dt.replace(tzinfo=tz)
 
-            turnover = item.get(turnover_head, 0)
-            open_interest = item.get(open_interest_head, 0)
+            turnover: str | int = item.get(turnover_head, 0)
+            open_interest: str | int = item.get(open_interest_head, 0)
 
             bar: BarData = BarData(
                 symbol=symbol,
@@ -120,10 +123,12 @@ class ManagerEngine(BaseEngine):
         ]
 
         try:
+            f: TextIO
             with open(file_path, "w") as f:
                 writer: csv.DictWriter = csv.DictWriter(f, fieldnames=fieldnames, lineterminator="\n")
                 writer.writeheader()
 
+                bar: BarData
                 for bar in bars:
                     d: dict = {
                         "symbol": bar.symbol,
